@@ -8,10 +8,10 @@ Telegram-бот для мониторинга вакансий портала «
 | Модуль            | Порт | Что делает                                              | Кто |
 |-------------------|------|---------------------------------------------------------|-----|
 | common            |  —   | DTO, события RabbitMQ, константы (меняем только PR-ом)   | все |
-| bot-service       | 8080 | Telegram webhook, команды, FSM `/subscribe`, callback-и | ?   |
-| db-service        | 8081 | REST API к PostgreSQL: пользователи, подписки, избранное | ?   |
-| worker-service    | 8082 | Опрос trudvsem.ru, дедупликация, события в RabbitMQ      | ?   |
-| notifier-service  | 8083 | Чтение очереди, отправка в Telegram с rate limit/retry  | ?   |
+| bot-service       | 8080 | Telegram webhook, команды, FSM `/subscribe`, callback-и | Ангелина |
+| db-service        | 8081 | REST API к PostgreSQL: пользователи, подписки, избранное | Полина |
+| worker-service    | 8082 | Опрос trudvsem.ru, дедупликация, события в RabbitMQ      | Маша |
+| notifier-service  | 8083 | Чтение очереди, отправка в Telegram с rate limit/retry  | Леша |
 
 Поток: `Telegram -> bot -> db-service`, `worker -> trudvsem.ru`, `worker -> RabbitMQ -> notifier -> Telegram`.
 
