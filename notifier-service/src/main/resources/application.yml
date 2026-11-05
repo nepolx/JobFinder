@@ -1,0 +1,22 @@
+server:
+  port: 8083
+spring:
+  application:
+    name: notifier-service
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+bot:
+  token: ${BOT_TOKEN:changeme}
+  username: ${BOT_USERNAME:changeme_bot}
+notifier:
+  rate-limit-per-second: 30     # лимит Telegram на бота
+  per-chat-interval: 1s         # ~1 сообщение/с на чат
+  max-retries: 3
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,31 @@
+server:
+  port: 8082
+spring:
+  application:
+    name: worker-service
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+  data:
+    redis:
+      host: localhost
+      port: 6379
+worker:
+  poll-interval: 60s
+  pool-size: 4
+trudvsem:
+  base-url: https://opendata.trudvsem.ru/api/v1
+  connect-timeout: 5s
+  read-timeout: 10s
+  max-retries: 3
+  cache-ttl: 3m
+clients:
+  db-service:
+    base-url: http://localhost:8081
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
