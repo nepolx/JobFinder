@@ -4,7 +4,6 @@ spring:
   application:
     name: db-service
   datasource:
-    # в проде — через PgBouncer
     url: jdbc:postgresql://localhost:5432/vacancybot
     username: vacancybot
     password: vacancybot
