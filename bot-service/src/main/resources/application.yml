@@ -1,0 +1,21 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: bot-service
+  data:
+    redis:           # контекст FSM хранится в Redis, чтобы бот был stateless
+      host: localhost
+      port: 6379
+bot:
+  token: ${BOT_TOKEN:changeme}
+  username: ${BOT_USERNAME:changeme_bot}
+  webhook-url: ${BOT_WEBHOOK_URL:https://example.com/webhook}
+clients:
+  db-service:
+    base-url: http://localhost:8081
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

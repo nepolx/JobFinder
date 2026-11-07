@@ -1,0 +1,21 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: db-service
+  datasource:
+    # в проде — через PgBouncer
+    url: jdbc:postgresql://localhost:5432/vacancybot
+    username: vacancybot
+    password: vacancybot
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
