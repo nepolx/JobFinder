@@ -2,7 +2,6 @@ package ru.vacancy.notifier.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -16,7 +15,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -30,7 +28,7 @@ import ru.vacancy.notifier.model.Recipient;
 
 /**
  * Проверка SQL на настоящем PostgreSQL (нужен Docker; без него тест пропускается).
- * Схема берётся из src/test/resources/test-schema.sql (партиции годовые, как у db-service):
+ * Схема берётся из src/test/resources/test-schema.sql (годовые партиции 2026-2032 и default, как у db-service):
  * замените её на миграции Flyway из db-service.
  * Запуск: mvn verify.
  */
@@ -242,10 +240,13 @@ class JdbcNotificationRepositoryIT {
     }
 
     @Test
-    void eventFromYearWithoutPartitionFailsLoudly() {
+    void eventBeyondYearlyPartitionsLandsInDefaultPartitionAndIsStillFound() {
         int u = user(1);
-        OffsetDateTime farFuture = OffsetDateTime.parse("2030-01-01T00:00:00Z");
-        assertThrows(DataAccessException.class, () -> repo.createPending(5, farFuture, List.of(u)));
+        OffsetDateTime farFuture = OffsetDateTime.parse("2040-01-01T00:00:00Z");   // вне 2026-2032
+        repo.createPending(5, farFuture, List.of(u));
+
+        assertEquals(1, repo.fetchPending(5, farFuture, VID).size());
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM notification_log_default", Integer.class));
     }
 
     @Test

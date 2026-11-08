@@ -57,7 +57,7 @@ CREATE TABLE user_favorites (
   PRIMARY KEY (user_id, vacancy_id)
 );
 
--- История изменений вакансий (пишет db-service). Партиции годовые.
+-- История изменений вакансий (пишет db-service). Партиции годовые 2026-2032 + запасная default.
 -- Название и колонки взяты по договорённости; сверьте с реальной схемой.
 CREATE TABLE vacancy_changes (
   id          bigserial,
@@ -72,9 +72,20 @@ CREATE TABLE vacancy_changes_2026 PARTITION OF vacancy_changes
   FOR VALUES FROM ('2026-01-01 00:00:00+00') TO ('2027-01-01 00:00:00+00');
 CREATE TABLE vacancy_changes_2027 PARTITION OF vacancy_changes
   FOR VALUES FROM ('2027-01-01 00:00:00+00') TO ('2028-01-01 00:00:00+00');
+CREATE TABLE vacancy_changes_2028 PARTITION OF vacancy_changes
+  FOR VALUES FROM ('2028-01-01 00:00:00+00') TO ('2029-01-01 00:00:00+00');
+CREATE TABLE vacancy_changes_2029 PARTITION OF vacancy_changes
+  FOR VALUES FROM ('2029-01-01 00:00:00+00') TO ('2030-01-01 00:00:00+00');
+CREATE TABLE vacancy_changes_2030 PARTITION OF vacancy_changes
+  FOR VALUES FROM ('2030-01-01 00:00:00+00') TO ('2031-01-01 00:00:00+00');
+CREATE TABLE vacancy_changes_2031 PARTITION OF vacancy_changes
+  FOR VALUES FROM ('2031-01-01 00:00:00+00') TO ('2032-01-01 00:00:00+00');
+CREATE TABLE vacancy_changes_2032 PARTITION OF vacancy_changes
+  FOR VALUES FROM ('2032-01-01 00:00:00+00') TO ('2033-01-01 00:00:00+00');
+CREATE TABLE vacancy_changes_default PARTITION OF vacancy_changes DEFAULT;
 
--- Журнал уведомлений: партиции годовые, ключ (change_id, user_id, changed_at).
--- Партиции по умолчанию нет: событие из года без партиции должно падать, а не теряться молча.
+-- Журнал уведомлений: партиции годовые 2026-2032 + запасная default, ключ (change_id, user_id, changed_at).
+-- Партиции создаёт и поддерживает db-service, Notifier их не создаёт.
 CREATE TABLE notification_log (
   change_id   bigint      NOT NULL,
   user_id     integer     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -89,3 +100,14 @@ CREATE TABLE notification_log_2026 PARTITION OF notification_log
   FOR VALUES FROM ('2026-01-01 00:00:00+00') TO ('2027-01-01 00:00:00+00');
 CREATE TABLE notification_log_2027 PARTITION OF notification_log
   FOR VALUES FROM ('2027-01-01 00:00:00+00') TO ('2028-01-01 00:00:00+00');
+CREATE TABLE notification_log_2028 PARTITION OF notification_log
+  FOR VALUES FROM ('2028-01-01 00:00:00+00') TO ('2029-01-01 00:00:00+00');
+CREATE TABLE notification_log_2029 PARTITION OF notification_log
+  FOR VALUES FROM ('2029-01-01 00:00:00+00') TO ('2030-01-01 00:00:00+00');
+CREATE TABLE notification_log_2030 PARTITION OF notification_log
+  FOR VALUES FROM ('2030-01-01 00:00:00+00') TO ('2031-01-01 00:00:00+00');
+CREATE TABLE notification_log_2031 PARTITION OF notification_log
+  FOR VALUES FROM ('2031-01-01 00:00:00+00') TO ('2032-01-01 00:00:00+00');
+CREATE TABLE notification_log_2032 PARTITION OF notification_log
+  FOR VALUES FROM ('2032-01-01 00:00:00+00') TO ('2033-01-01 00:00:00+00');
+CREATE TABLE notification_log_default PARTITION OF notification_log DEFAULT;
