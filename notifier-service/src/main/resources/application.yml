@@ -1,22 +1,40 @@
-server:
-  port: 8083
 spring:
-  application:
-    name: notifier-service
+  main:
+    web-application-type: none          # веб-сервер не нужен: сервис только читает очередь
+  datasource:
+    url: ${DB_URL}                      # jdbc:postgresql://postgres:5432/app
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-bot:
-  token: ${BOT_TOKEN:changeme}
-  username: ${BOT_USERNAME:changeme_bot}
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    listener:
+      simple:
+        acknowledge-mode: manual        # подтверждаем сами, после обработки
+        prefetch: 1
+        concurrency: ${EVENT_CONCURRENCY:10}       # событий обрабатывается одновременно
+        max-concurrency: ${EVENT_CONCURRENCY:10}
+
 notifier:
-  rate-limit-per-second: 30     # лимит Telegram на бота
-  per-chat-interval: 1s         # ~1 сообщение/с на чат
-  max-retries: 3
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
+  telegram-bot-token: ${TELEGRAM_BOT_TOKEN}
+  events-queue: ${EVENTS_QUEUE:vacancy.events}
+  retry-queue: ${RETRY_QUEUE:vacancy.events.retry}
+  retry-delay-ms: ${RETRY_DELAY_MS:60000}
+  max-redeliveries: ${MAX_REDELIVERIES:5}
+  global-rate: ${GLOBAL_RATE:25}
+  global-burst: ${GLOBAL_BURST:5}
+  per-chat-rate: ${PER_CHAT_RATE:1}
+  send-concurrency: ${SEND_CONCURRENCY:10}
+  max-attempts: ${MAX_ATTEMPTS:5}
+
+logging:
+  level:
+    root: INFO
