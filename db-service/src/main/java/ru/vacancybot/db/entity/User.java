@@ -15,12 +15,17 @@ import java.time.Instant;
 @Table(name = "users")
 public class User {
 
+    // serial в PostgreSQL = автоинкремент, поэтому IDENTITY
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "telegram_id", nullable = false, unique = true)
     private Long telegramId;
+
+    // true, если пользователь заблокировал бота (ставит notifier)
+    @Column(name = "is_blocked", nullable = false)
+    private boolean blocked;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -45,6 +50,10 @@ public class User {
     public Long getTelegramId() { return telegramId; }
 
     public void setTelegramId(Long telegramId) { this.telegramId = telegramId; }
+
+    public boolean isBlocked() { return blocked; }
+
+    public void setBlocked(boolean blocked) { this.blocked = blocked; }
 
     public Instant getCreatedAt() { return createdAt; }
 }

@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -16,7 +16,7 @@ import ru.vacancybot.db.service.FavoriteService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/users/{telegramId}/favorites")
 public class FavoriteController {
 
     private final FavoriteService service;
@@ -25,28 +25,38 @@ public class FavoriteController {
         this.service = service;
     }
 
-    // POST /api/favorites  (тело: FavoriteDto, нужны telegramUserId и vacancyId; status и note по желанию)
-    @PostMapping("/favorites")
-    public FavoriteDto add(@RequestBody FavoriteDto dto) {
-        return service.add(dto);
-    }
-
-    // GET /api/users/{telegramId}/favorites
-    @GetMapping("/users/{telegramId}/favorites")
+    // GET /api/users/{telegramId}/favorites  (команда /favorites)
+    @GetMapping
     public List<FavoriteDto> list(@PathVariable("telegramId") Long telegramId) {
         return service.list(telegramId);
     }
 
-    // PATCH /api/users/{telegramId}/favorites/{vacancyId}  (тело: FavoriteDto, используются status и note)
-    @PatchMapping("/users/{telegramId}/favorites/{vacancyId}")
+    // GET /api/users/{telegramId}/favorites/{vacancyId}  (404, если нет в избранном)
+    @GetMapping("/{vacancyId}")
+    public FavoriteDto get(@PathVariable("telegramId") Long telegramId,
+                           @PathVariable("vacancyId") String vacancyId) {
+        return service.get(telegramId, vacancyId);
+    }
+
+    // PUT /api/users/{telegramId}/favorites/{vacancyId}  (fav_add_{id}; тело необязательно)
+    // Из тела FavoriteDto используются только status и note.
+    @PutMapping("/{vacancyId}")
+    public FavoriteDto add(@PathVariable("telegramId") Long telegramId,
+                           @PathVariable("vacancyId") String vacancyId,
+                           @RequestBody(required = false) FavoriteDto dto) {
+        return service.add(telegramId, vacancyId, dto);
+    }
+
+    // PATCH /api/users/{telegramId}/favorites/{vacancyId}  (смена статуса или заметки)
+    @PatchMapping("/{vacancyId}")
     public FavoriteDto update(@PathVariable("telegramId") Long telegramId,
                               @PathVariable("vacancyId") String vacancyId,
                               @RequestBody FavoriteDto dto) {
         return service.update(telegramId, vacancyId, dto);
     }
 
-    // DELETE /api/users/{telegramId}/favorites/{vacancyId}
-    @DeleteMapping("/users/{telegramId}/favorites/{vacancyId}")
+    // DELETE /api/users/{telegramId}/favorites/{vacancyId}  (fav_del_{id})
+    @DeleteMapping("/{vacancyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remove(@PathVariable("telegramId") Long telegramId,
                        @PathVariable("vacancyId") String vacancyId) {

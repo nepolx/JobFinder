@@ -8,12 +8,12 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Преобразование между FavoriteDto и UserFavorite.
+ * Преобразование UserFavorite в FavoriteDto.
  *
  * В DTO статус пишется заглавными (SAVED / APPLIED / WAITING),
- * в базе строчными (saved / applied / waiting). У избранного нет своего id
- * (ключ составной), поэтому id в DTO всегда null: запись определяется
- * парой (telegramUserId, vacancyId).
+ * в базе строчными (saved / applied / waiting). На входе регистр не важен.
+ * У избранного нет своего id (ключ составной), поэтому id в DTO всегда null:
+ * запись определяется парой (telegramUserId, vacancyId).
  */
 public final class FavoriteMapper {
 

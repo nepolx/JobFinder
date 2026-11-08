@@ -10,7 +10,8 @@ import java.util.UUID;
 
 public interface UserFavoriteRepository extends JpaRepository<UserFavorite, UserFavoriteId> {
 
-    List<UserFavorite> findByUserId(Integer userId);
+    /** Избранное пользователя, новые сверху. */
+    List<UserFavorite> findByUserIdOrderByCreatedAtDesc(Integer userId);
 
     Optional<UserFavorite> findByUserIdAndVacancyId(Integer userId, UUID vacancyId);
 

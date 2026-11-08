@@ -15,14 +15,22 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    /** Находит пользователя по telegram_id, а если его нет, создаёт. */
+    /**
+     * Находит пользователя по telegram_id, а если его нет, создаёт.
+     * Если пользователь был помечен как заблокировавший бота, флаг сбрасывается:
+     * раз он снова обращается к боту, значит, бот разблокирован.
+     */
     @Transactional
     public User getOrCreate(Long telegramId) {
         if (telegramId == null) {
             throw new IllegalArgumentException("telegramUserId обязателен");
         }
-        return userRepository.findByTelegramId(telegramId)
+        User user = userRepository.findByTelegramId(telegramId)
                 .orElseGet(() -> userRepository.save(new User(telegramId)));
+        if (user.isBlocked()) {
+            user.setBlocked(false); // сохранится при коммите транзакции
+        }
+        return user;
     }
 
     /** Находит существующего пользователя, иначе 404. */
