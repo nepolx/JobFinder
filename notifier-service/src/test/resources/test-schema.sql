@@ -57,7 +57,24 @@ CREATE TABLE user_favorites (
   PRIMARY KEY (user_id, vacancy_id)
 );
 
--- Журнал уведомлений: партиционирован по changed_at, ключ (change_id, user_id, changed_at).
+-- История изменений вакансий (пишет db-service). Партиции годовые.
+-- Название и колонки взяты по договорённости; сверьте с реальной схемой.
+CREATE TABLE vacancy_changes (
+  id          bigserial,
+  vacancy_id  uuid        NOT NULL,
+  changed_at  timestamptz NOT NULL,
+  change_type text        NOT NULL,
+  diff        jsonb,
+  PRIMARY KEY (id, changed_at)
+) PARTITION BY RANGE (changed_at);
+CREATE INDEX vacancy_changes_vacancy ON vacancy_changes (vacancy_id, changed_at);
+CREATE TABLE vacancy_changes_2026 PARTITION OF vacancy_changes
+  FOR VALUES FROM ('2026-01-01 00:00:00+00') TO ('2027-01-01 00:00:00+00');
+CREATE TABLE vacancy_changes_2027 PARTITION OF vacancy_changes
+  FOR VALUES FROM ('2027-01-01 00:00:00+00') TO ('2028-01-01 00:00:00+00');
+
+-- Журнал уведомлений: партиции годовые, ключ (change_id, user_id, changed_at).
+-- Партиции по умолчанию нет: событие из года без партиции должно падать, а не теряться молча.
 CREATE TABLE notification_log (
   change_id   bigint      NOT NULL,
   user_id     integer     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -68,5 +85,7 @@ CREATE TABLE notification_log (
   sent_at     timestamptz,
   PRIMARY KEY (change_id, user_id, changed_at)
 ) PARTITION BY RANGE (changed_at);
-
-CREATE TABLE notification_log_default PARTITION OF notification_log DEFAULT;
+CREATE TABLE notification_log_2026 PARTITION OF notification_log
+  FOR VALUES FROM ('2026-01-01 00:00:00+00') TO ('2027-01-01 00:00:00+00');
+CREATE TABLE notification_log_2027 PARTITION OF notification_log
+  FOR VALUES FROM ('2027-01-01 00:00:00+00') TO ('2028-01-01 00:00:00+00');

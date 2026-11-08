@@ -14,5 +14,6 @@ public record NotifierProperties(
         @DefaultValue("5") int globalBurst,
         @DefaultValue("1") double perChatRate,            // сообщений/с в один чат
         @DefaultValue("10") int sendConcurrency,          // получателей одного события параллельно
-        @DefaultValue("5") int maxAttempts) {             // попыток отправки одному получателю
+        @DefaultValue("5") int maxAttempts,               // попыток отправки одному получателю
+        @DefaultValue("true") boolean notifySubscribersOnUpdate) { // при изменении вакансии слать подписчикам, не видевшим её
 }

@@ -10,7 +10,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import ru.vacancy.notifier.model.ChangeType;
 import ru.vacancy.notifier.model.Recipient;
 import ru.vacancy.notifier.model.Vacancy;
 
@@ -18,13 +17,13 @@ import ru.vacancy.notifier.model.Vacancy;
  * Схему ведёт db-service (Flyway), Notifier её не создаёт и не меняет.
  * Ожидаемые колонки notification_log: change_id, changed_at, user_id (ключ) и
  * status ('pending'|'sent'|'failed'|'blocked'), attempts, last_error, sent_at.
- * Если названия отличаются, правится только SQL в этом файле.
+ * Ожидаемая история изменений: vacancy_changes (id, vacancy_id, changed_at); change_id журнала = vacancy_changes.id.
+ * Журнал и история партиционированы по годам (changed_at). Если названия отличаются, правится только SQL в этом файле.
  */
 @Repository
 public class JdbcNotificationRepository implements NotificationRepository {
 
-    // Кому слать о НОВОЙ вакансии: активные подписки, под которые она подходит.
-    // NULL в подписке означает «без ограничения по этому критерию».
+    // Подписки, под которые подходит вакансия. NULL в подписке означает «без ограничения по критерию».
     private static final String SQL_SUBSCRIBERS = """
             SELECT DISTINCT s.user_id
             FROM subscriptions s
@@ -41,7 +40,19 @@ public class JdbcNotificationRepository implements NotificationRepository {
               AND (s.query_tsq IS NULL OR numnode(s.query_tsq) = 0 OR s.query_tsq @@ v.search_vector)
             """;
 
-    // Кому слать об ИЗМЕНЕНИИ или закрытии: тем, у кого вакансия в избранном.
+    // То же, но только для тех, кому о вакансии ещё ничего не отправляли.
+    // «Отправляли» = в журнале есть запись sent по любому изменению этой вакансии (история в vacancy_changes).
+    // Журнал и история партиционированы по годам: связка идёт по полному (id, changed_at), поэтому
+    // PostgreSQL заглядывает только в нужные партиции; сами партиции за все годы хранения учитываются.
+    // Нужен индекс vacancy_changes (vacancy_id, changed_at).
+    private static final String SQL_SUBSCRIBERS_NOT_YET_NOTIFIED = SQL_SUBSCRIBERS + """
+              AND NOT EXISTS (
+                    SELECT 1
+                    FROM vacancy_changes vc
+                    JOIN notification_log n ON n.change_id = vc.id AND n.changed_at = vc.changed_at
+                    WHERE vc.vacancy_id = v.id AND n.user_id = s.user_id AND n.status = 'sent')
+            """;
+
     private static final String SQL_FAVORITE_OWNERS = """
             SELECT f.user_id
             FROM user_favorites f
@@ -56,9 +67,10 @@ public class JdbcNotificationRepository implements NotificationRepository {
             """;
 
     private static final String SQL_FETCH_PENDING = """
-            SELECT n.user_id, u.telegram_id
+            SELECT n.user_id, u.telegram_id, (f.user_id IS NOT NULL) AS in_favorites
             FROM notification_log n
             JOIN users u ON u.id = n.user_id
+            LEFT JOIN user_favorites f ON f.user_id = n.user_id AND f.vacancy_id = ?
             WHERE n.change_id = ? AND n.changed_at = ? AND n.status = 'pending' AND NOT u.is_blocked
             ORDER BY n.user_id
             """;
@@ -94,9 +106,14 @@ public class JdbcNotificationRepository implements NotificationRepository {
     }
 
     @Override
-    public List<Integer> findRecipientUserIds(UUID vacancyId, ChangeType type) {
-        String sql = type == ChangeType.CREATED ? SQL_SUBSCRIBERS : SQL_FAVORITE_OWNERS;
+    public List<Integer> findSubscriberUserIds(UUID vacancyId, boolean onlyNotYetNotified) {
+        String sql = onlyNotYetNotified ? SQL_SUBSCRIBERS_NOT_YET_NOTIFIED : SQL_SUBSCRIBERS;
         return jdbc.query(sql, (rs, i) -> rs.getInt(1), vacancyId);
+    }
+
+    @Override
+    public List<Integer> findFavoriteOwnerUserIds(UUID vacancyId) {
+        return jdbc.query(SQL_FAVORITE_OWNERS, (rs, i) -> rs.getInt(1), vacancyId);
     }
 
     @Override
@@ -109,11 +126,12 @@ public class JdbcNotificationRepository implements NotificationRepository {
     }
 
     @Override
-    public List<Recipient> fetchPending(long changeId, OffsetDateTime changedAt) {
+    public List<Recipient> fetchPending(long changeId, OffsetDateTime changedAt, UUID vacancyId) {
         return jdbc.query(
                 SQL_FETCH_PENDING,
-                (rs, i) -> new Recipient(changeId, changedAt, rs.getInt("user_id"), rs.getLong("telegram_id")),
-                changeId, changedAt);
+                (rs, i) -> new Recipient(changeId, changedAt, rs.getInt("user_id"), rs.getLong("telegram_id"),
+                        rs.getBoolean("in_favorites")),
+                vacancyId, changeId, changedAt);
     }
 
     @Override

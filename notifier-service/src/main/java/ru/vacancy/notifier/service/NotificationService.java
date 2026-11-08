@@ -1,8 +1,10 @@
 package ru.vacancy.notifier.service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -15,6 +17,7 @@ import ru.vacancy.notifier.db.NotificationRepository;
 import ru.vacancy.notifier.format.MessageFormatter;
 import ru.vacancy.notifier.limit.ChatRateLimiter;
 import ru.vacancy.notifier.model.ChangeEvent;
+import ru.vacancy.notifier.model.ChangeType;
 import ru.vacancy.notifier.model.Recipient;
 import ru.vacancy.notifier.model.Vacancy;
 import ru.vacancy.notifier.retry.RetryExecutor;
@@ -23,7 +26,18 @@ import ru.vacancy.notifier.telegram.PermanentException;
 import ru.vacancy.notifier.telegram.TelegramSender;
 import ru.vacancy.notifier.telegram.TemporaryException;
 
-/** Событие -> получатели -> отправка -> журнал. */
+/**
+ * Событие -> получатели -> отправка -> журнал.
+ *
+ * <p>Кому и что отправляется:
+ * <ul>
+ *   <li>created: подходящие подписки, текст «новая вакансия»;</li>
+ *   <li>updated: владельцы избранного получают «изменилась» (с diff); подписчики, которым о вакансии
+ *       ещё ничего не отправляли, получают её как «новую» (если включено notifySubscribersOnUpdate);</li>
+ *   <li>closed: владельцы избранного.</li>
+ * </ul>
+ * Одно и то же событие поэтому может уйти разным людям в разном виде.
+ */
 public final class NotificationService implements EventHandler {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
@@ -36,15 +50,18 @@ public final class NotificationService implements EventHandler {
     private final RetryExecutor retry;
     private final ExecutorService executor;
     private final int concurrency;
+    private final boolean notifySubscribersOnUpdate;
 
     public NotificationService(NotificationRepository repo, TelegramSender sender, ChatRateLimiter limiter,
-                               RetryExecutor retry, ExecutorService executor, int concurrency) {
+                               RetryExecutor retry, ExecutorService executor, int concurrency,
+                               boolean notifySubscribersOnUpdate) {
         this.repo = repo;
         this.sender = sender;
         this.limiter = limiter;
         this.retry = retry;
         this.executor = executor;
         this.concurrency = concurrency;
+        this.notifySubscribersOnUpdate = notifySubscribersOnUpdate;
     }
 
     /**
@@ -59,24 +76,29 @@ public final class NotificationService implements EventHandler {
             return HandleResult.EMPTY;
         }
 
-        List<Integer> userIds = repo.findRecipientUserIds(event.vacancyId(), event.type());
+        Set<Integer> userIds = findRecipients(event);
         if (!userIds.isEmpty()) {
             repo.createPending(event.changeId(), event.changedAt(), userIds);
         }
 
-        List<Recipient> pending = repo.fetchPending(event.changeId(), event.changedAt());
+        List<Recipient> pending = repo.fetchPending(event.changeId(), event.changedAt(), event.vacancyId());
         if (pending.isEmpty()) {
             return HandleResult.EMPTY;
         }
 
-        String text = MessageFormatter.format(event, vacancy.get());
+        String eventText = MessageFormatter.format(event, vacancy.get());
+        String newVacancyText = event.type() == ChangeType.UPDATED
+                ? MessageFormatter.format(event.asNewVacancy(), vacancy.get())
+                : eventText;
         Semaphore semaphore = new Semaphore(concurrency);
         List<Future<Outcome>> futures = new ArrayList<>();
         for (Recipient recipient : pending) {
             futures.add(executor.submit(() -> {
                 semaphore.acquire();
                 try {
-                    return deliver(recipient, text);
+                    // изменение показываем «как изменилось» только тем, у кого вакансия в избранном
+                    boolean asNew = event.type() == ChangeType.UPDATED && !recipient.inFavorites();
+                    return deliver(recipient, asNew ? newVacancyText : eventText);
                 } finally {
                     semaphore.release();
                 }
@@ -120,6 +142,21 @@ public final class NotificationService implements EventHandler {
         log.info("change {} ({}): sent={} blocked={} failed={} retryLater={}",
                 event.changeId(), event.type().value(), sent, blocked, failed, retryLater);
         return new HandleResult(sent, blocked, failed, retryLater);
+    }
+
+    private Set<Integer> findRecipients(ChangeEvent event) {
+        Set<Integer> ids = new LinkedHashSet<>();
+        switch (event.type()) {
+            case CREATED -> ids.addAll(repo.findSubscriberUserIds(event.vacancyId(), false));
+            case UPDATED -> {
+                ids.addAll(repo.findFavoriteOwnerUserIds(event.vacancyId()));
+                if (notifySubscribersOnUpdate) {
+                    ids.addAll(repo.findSubscriberUserIds(event.vacancyId(), true));
+                }
+            }
+            case CLOSED -> ids.addAll(repo.findFavoriteOwnerUserIds(event.vacancyId()));
+        }
+        return ids;
     }
 
     @Override

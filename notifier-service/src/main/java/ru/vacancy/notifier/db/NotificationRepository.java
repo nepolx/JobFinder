@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import ru.vacancy.notifier.model.ChangeType;
 import ru.vacancy.notifier.model.Recipient;
 import ru.vacancy.notifier.model.Vacancy;
 
@@ -18,13 +17,22 @@ public interface NotificationRepository {
 
     Optional<Vacancy> findVacancy(UUID vacancyId);
 
-    /** CREATED: подходящие активные подписки; UPDATED/CLOSED: владельцы избранного. */
-    List<Integer> findRecipientUserIds(UUID vacancyId, ChangeType type);
+    /**
+     * Пользователи с активной подпиской, под которую подходит вакансия.
+     *
+     * @param onlyNotYetNotified true: только те, кому о вакансии ещё ничего не отправляли (статус sent),
+     *                           то есть для кого она «новая»
+     */
+    List<Integer> findSubscriberUserIds(UUID vacancyId, boolean onlyNotYetNotified);
+
+    /** Пользователи, у которых вакансия в избранном. */
+    List<Integer> findFavoriteOwnerUserIds(UUID vacancyId);
 
     /** Идемпотентно: повторный вызов не создаёт дублей. */
     void createPending(long changeId, OffsetDateTime changedAt, Collection<Integer> userIds);
 
-    List<Recipient> fetchPending(long changeId, OffsetDateTime changedAt);
+    /** vacancyId нужен, чтобы определить, у кого вакансия в избранном. */
+    List<Recipient> fetchPending(long changeId, OffsetDateTime changedAt, UUID vacancyId);
 
     void markSent(Recipient recipient);
 

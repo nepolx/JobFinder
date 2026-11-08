@@ -34,6 +34,7 @@ notifier:
   per-chat-rate: ${PER_CHAT_RATE:1}
   send-concurrency: ${SEND_CONCURRENCY:10}
   max-attempts: ${MAX_ATTEMPTS:5}
+  notify-subscribers-on-update: ${NOTIFY_SUBSCRIBERS_ON_UPDATE:true}
 
 logging:
   level:

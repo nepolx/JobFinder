@@ -31,6 +31,11 @@ public record ChangeEvent(
     private static final Pattern UUID_FORMAT =
             Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
+    /** То же изменение, но показанное как новая вакансия (для тех, кто её раньше не видел). */
+    public ChangeEvent asNewVacancy() {
+        return new ChangeEvent(changeId, vacancyId, ChangeType.CREATED, changedAt, Map.of());
+    }
+
     /** Разбор из Map, который получается из JSON (Jackson: числа Integer/Long/Double). */
     public static ChangeEvent fromMap(Map<String, ?> data) {
         if (data == null) {

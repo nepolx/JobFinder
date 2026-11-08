@@ -80,7 +80,8 @@ public class AppConfig {
                                             ChatRateLimiter limiter, ExecutorService sendExecutor,
                                             NotifierProperties p) {
         return new NotificationService(repo, sender, limiter,
-                RetryExecutor.withDefaults(p.maxAttempts()), sendExecutor, p.sendConcurrency());
+                RetryExecutor.withDefaults(p.maxAttempts()), sendExecutor, p.sendConcurrency(),
+                p.notifySubscribersOnUpdate());
     }
 
     @Bean

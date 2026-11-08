@@ -1,12 +1,15 @@
 package ru.vacancy.notifier.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,6 +21,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,12 +50,13 @@ class NotificationServiceTest {
     /** Хранит журнал в памяти и повторяет контракт JdbcNotificationRepository. */
     static class FakeRepo implements NotificationRepository {
         Vacancy vacancy = VACANCY;
-        final List<Integer> userIds = new ArrayList<>();
-        final Set<Integer> blockedUsers = new java.util.HashSet<>();
-        final Map<String, String> status = new LinkedHashMap<>();   // "change:changedAt:user" -> status
+        final List<Integer> subscribers = new ArrayList<>();   // у кого вакансия подходит под подписку
+        final Set<Integer> favorites = new HashSet<>();        // у кого она в избранном
+        final Set<Integer> blockedUsers = new HashSet<>();
+        final Map<String, String> status = new LinkedHashMap<>();   // "change|changedAt|user" -> status
 
-        FakeRepo(Integer... users) {
-            userIds.addAll(List.of(users));
+        FakeRepo(Integer... subscribedUsers) {
+            subscribers.addAll(List.of(subscribedUsers));
         }
 
         static String key(long changeId, OffsetDateTime changedAt, int userId) {
@@ -66,14 +71,28 @@ class NotificationServiceTest {
             return 1000 + userId;
         }
 
+        /** Как в БД: «уже уведомляли» = есть запись sent по любому изменению этой вакансии. */
+        boolean alreadyNotified(int userId) {
+            return status.entrySet().stream()
+                    .anyMatch(e -> e.getKey().endsWith("|" + userId) && e.getValue().equals("sent"));
+        }
+
         @Override
         public Optional<Vacancy> findVacancy(UUID vacancyId) {
             return Optional.ofNullable(vacancy);
         }
 
         @Override
-        public List<Integer> findRecipientUserIds(UUID vacancyId, ChangeType type) {
-            return userIds.stream().filter(u -> !blockedUsers.contains(u)).toList();
+        public List<Integer> findSubscriberUserIds(UUID vacancyId, boolean onlyNotYetNotified) {
+            return subscribers.stream()
+                    .filter(u -> !blockedUsers.contains(u))
+                    .filter(u -> !onlyNotYetNotified || !alreadyNotified(u))
+                    .toList();
+        }
+
+        @Override
+        public List<Integer> findFavoriteOwnerUserIds(UUID vacancyId) {
+            return favorites.stream().filter(u -> !blockedUsers.contains(u)).sorted().toList();
         }
 
         @Override
@@ -84,12 +103,13 @@ class NotificationServiceTest {
         }
 
         @Override
-        public List<Recipient> fetchPending(long changeId, OffsetDateTime changedAt) {
+        public List<Recipient> fetchPending(long changeId, OffsetDateTime changedAt, UUID vacancyId) {
+            Set<Integer> everyone = new java.util.TreeSet<>(subscribers);
+            everyone.addAll(favorites);
             List<Recipient> result = new ArrayList<>();
-            for (int u : new TreeMap<Integer, Boolean>(
-                    userIds.stream().collect(java.util.stream.Collectors.toMap(x -> x, x -> true))).keySet()) {
+            for (int u : everyone) {
                 if ("pending".equals(status.get(key(changeId, changedAt, u))) && !blockedUsers.contains(u)) {
-                    result.add(new Recipient(changeId, changedAt, u, telegramId(u)));
+                    result.add(new Recipient(changeId, changedAt, u, telegramId(u), favorites.contains(u)));
                 }
             }
             return result;
@@ -130,7 +150,9 @@ class NotificationServiceTest {
 
         Map<Integer, String> statusByUser(long changeId) {
             Map<Integer, String> result = new TreeMap<>();
-            for (int u : userIds) {
+            Set<Integer> everyone = new HashSet<>(subscribers);
+            everyone.addAll(favorites);
+            for (int u : everyone) {
                 String s = status.get(key(changeId, T0, u));
                 if (s != null) {
                     result.put(u, s);
@@ -140,12 +162,12 @@ class NotificationServiceTest {
         }
     }
 
-    /** script: chatId -> ошибки, которые надо бросить по очереди перед успехом. */
+    /** failing(chatId, ошибки...): ошибки бросаются по очереди перед успехом. */
     static class FakeSender implements TelegramSender {
-        final Map<Long, Queue<RuntimeException>> script = new java.util.HashMap<>();
+        final Map<Long, Queue<RuntimeException>> script = new HashMap<>();
         final List<Long> calls = new ArrayList<>();
-        final List<String> sentTexts = new ArrayList<>();
         final List<Long> sentTo = new ArrayList<>();
+        final Map<Long, String> textTo = new HashMap<>();
 
         FakeSender failing(long chatId, RuntimeException... errors) {
             script.put(chatId, new LinkedList<>(List.of(errors)));
@@ -160,7 +182,7 @@ class NotificationServiceTest {
                 throw queue.poll();
             }
             sentTo.add(chatId);
-            sentTexts.add(text);
+            textTo.put(chatId, text);
         }
 
         long count(long chatId) {
@@ -187,20 +209,115 @@ class NotificationServiceTest {
         executor = Executors.newSingleThreadExecutor();
     }
 
-    NotificationService service(FakeRepo repo, FakeSender sender, FakeLimiter limiter) {
+    NotificationService service(FakeRepo repo, FakeSender sender, FakeLimiter limiter, boolean subscribersOnUpdate) {
         RetryExecutor retry = new RetryExecutor(3, 1.0, 30.0, seconds -> { }, d -> d);
-        return new NotificationService(repo, sender, limiter, retry, executor, 5);
+        return new NotificationService(repo, sender, limiter, retry, executor, 5, subscribersOnUpdate);
+    }
+
+    NotificationService service(FakeRepo repo, FakeSender sender, FakeLimiter limiter) {
+        return service(repo, sender, limiter, true);
     }
 
     NotificationService service(FakeRepo repo, FakeSender sender) {
-        return service(repo, sender, new FakeLimiter());
+        return service(repo, sender, new FakeLimiter(), true);
     }
 
     static ChangeEvent created(long changeId) {
         return new ChangeEvent(changeId, VID, ChangeType.CREATED, T0, Map.of());
     }
 
-    // ---- тесты ----
+    static ChangeEvent updated(long changeId) {
+        return new ChangeEvent(changeId, VID, ChangeType.UPDATED, T0,
+                Map.of("salary_min", List.<Object>of(50000, 70000)));
+    }
+
+    static ChangeEvent closed(long changeId) {
+        return new ChangeEvent(changeId, VID, ChangeType.CLOSED, T0, Map.of());
+    }
+
+    // ---- кому и в каком виде ----
+
+    @Test
+    void createdGoesToMatchingSubscribersAsNewVacancy() {
+        FakeRepo repo = new FakeRepo(1, 2);
+        repo.favorites.add(9);                      // избранное при created не учитывается
+        FakeSender sender = new FakeSender();
+        service(repo, sender).handle(created(1));
+
+        assertEquals(List.of(1001L, 1002L), sender.sentTo);
+        assertTrue(sender.textTo.get(1001L).contains("Новая вакансия"));
+    }
+
+    @Test
+    void sameUpdateIsSentAsChangedToFavoriteOwnersAndAsNewToSubscribersWhoNeverSawIt() {
+        FakeRepo repo = new FakeRepo(1, 2, 3);
+        repo.favorites.add(1);                      // 1: уже видел и добавил в избранное
+        repo.status.put(FakeRepo.key(0, T0.minusDays(5), 3), "sent");   // 3: уже получал её раньше, в избранное не брал
+        FakeSender sender = new FakeSender();
+        HandleResult result = service(repo, sender).handle(updated(7));
+
+        // 1: «изменилась» с diff
+        String forFavoriteOwner = sender.textTo.get(1001L);
+        assertTrue(forFavoriteOwner.contains("Вакансия из избранного изменилась"), forFavoriteOwner);
+        assertTrue(forFavoriteOwner.contains("Что изменилось"));
+        // 2: пользователь вакансию не видел, для него она «новая», без diff
+        String forNewcomer = sender.textTo.get(1002L);
+        assertTrue(forNewcomer.contains("Новая вакансия"), forNewcomer);
+        assertFalse(forNewcomer.contains("Что изменилось"));
+        // 3: уже получал и не в избранном: молчим, чтобы не повторять «новую» при каждой правке
+        assertFalse(sender.textTo.containsKey(1003L));
+        assertEquals(2, result.sent());
+    }
+
+    @Test
+    void favoriteOwnerWhoIsAlsoSubscriberGetsExactlyOneMessage() {
+        FakeRepo repo = new FakeRepo(1);
+        repo.favorites.add(1);
+        FakeSender sender = new FakeSender();
+        service(repo, sender).handle(updated(7));
+
+        assertEquals(1L, sender.count(1001));
+        assertTrue(sender.textTo.get(1001L).contains("Что изменилось"));
+    }
+
+    @Test
+    void subscribersAreNotNotifiedAboutUpdatesWhenFeatureIsOff() {
+        FakeRepo repo = new FakeRepo(1, 2);
+        repo.favorites.add(1);
+        FakeSender sender = new FakeSender();
+        service(repo, sender, new FakeLimiter(), false).handle(updated(7));
+
+        assertEquals(List.of(1001L), sender.sentTo);
+    }
+
+    @Test
+    void closedGoesOnlyToFavoriteOwners() {
+        FakeRepo repo = new FakeRepo(1, 2);
+        repo.favorites.add(2);
+        FakeSender sender = new FakeSender();
+        service(repo, sender).handle(closed(8));
+
+        assertEquals(List.of(1002L), sender.sentTo);
+        assertTrue(sender.textTo.get(1002L).contains("закрыта"));
+    }
+
+    @Test
+    void redeliveryKeepsEachRecipientsVariant() {
+        FakeRepo repo = new FakeRepo(1, 2);
+        repo.favorites.add(1);
+        FakeSender sender = new FakeSender().failing(1002,
+                new TemporaryException("down"), new TemporaryException("down"), new TemporaryException("down"));
+        NotificationService service = service(repo, sender);
+
+        service.handle(updated(7));                // у 2 не вышло, 1 получил «изменилась»
+        service.handle(updated(7));                // повторная доставка из очереди
+
+        assertTrue(sender.textTo.get(1001L).contains("Что изменилось"));
+        assertTrue(sender.textTo.get(1002L).contains("Новая вакансия"));
+        assertEquals(1L, sender.count(1001));      // первому повторно не слали
+    }
+
+    // ---- надёжность ----
 
     @Test
     void sendsToEveryRecipientAndMarksSent() {
@@ -211,7 +328,7 @@ class NotificationServiceTest {
         assertEquals(3, result.sent());
         assertEquals(List.of(1001L, 1002L, 1003L), sender.sentTo);
         assertEquals(Map.of(1, "sent", 2, "sent", 3, "sent"), repo.statusByUser(1));
-        assertTrue(sender.sentTexts.get(0).contains("Python-разработчик"));
+        assertTrue(sender.textTo.get(1001L).contains("Python-разработчик"));
     }
 
     @Test
@@ -227,24 +344,13 @@ class NotificationServiceTest {
     }
 
     @Test
-    void differentChangesOfSameVacancyAreBothDelivered() {
-        FakeRepo repo = new FakeRepo(1);
-        FakeSender sender = new FakeSender();
-        NotificationService service = service(repo, sender);
-        service.handle(created(1));
-        service.handle(new ChangeEvent(2, VID, ChangeType.UPDATED, T0,
-                Map.of("salary_min", List.<Object>of(1, 2))));
-        assertEquals(2, sender.sentTo.size());
-    }
-
-    @Test
     void sameChangeIdWithDifferentChangedAtIsADifferentChange() {
-        // ключ журнала включает changed_at
+        // ключ журнала включает changed_at (в том числе при переходе в партицию следующего года)
         FakeRepo repo = new FakeRepo(1);
         FakeSender sender = new FakeSender();
         NotificationService service = service(repo, sender);
         service.handle(created(1));
-        service.handle(new ChangeEvent(1, VID, ChangeType.CREATED, T0.plusMonths(1), Map.of()));
+        service.handle(new ChangeEvent(1, VID, ChangeType.CREATED, T0.plusMonths(2), Map.of()));
         assertEquals(2, sender.sentTo.size());
     }
 
@@ -362,12 +468,11 @@ class NotificationServiceTest {
                 super.markSent(r);
             }
         };
-        java.util.concurrent.atomic.AtomicInteger running = new java.util.concurrent.atomic.AtomicInteger();
-        java.util.concurrent.atomic.AtomicInteger maxRunning = new java.util.concurrent.atomic.AtomicInteger();
-        java.util.concurrent.atomic.AtomicInteger delivered = new java.util.concurrent.atomic.AtomicInteger();
+        AtomicInteger running = new AtomicInteger();
+        AtomicInteger maxRunning = new AtomicInteger();
+        AtomicInteger delivered = new AtomicInteger();
         TelegramSender slowSender = (chatId, text) -> {
-            int now = running.incrementAndGet();
-            maxRunning.accumulateAndGet(now, Math::max);
+            maxRunning.accumulateAndGet(running.incrementAndGet(), Math::max);
             try {
                 Thread.sleep(30);
             } catch (InterruptedException e) {
@@ -378,7 +483,7 @@ class NotificationServiceTest {
         };
         ExecutorService virtual = Executors.newVirtualThreadPerTaskExecutor();
         NotificationService service = new NotificationService(repo, slowSender, chatId -> { },
-                new RetryExecutor(3, 1.0, 30.0, seconds -> { }, d -> d), virtual, 2);
+                new RetryExecutor(3, 1.0, 30.0, seconds -> { }, d -> d), virtual, 2, true);
 
         HandleResult result = service.handle(created(1));
 
