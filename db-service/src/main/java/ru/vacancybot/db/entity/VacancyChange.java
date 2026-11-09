@@ -11,6 +11,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,6 +47,17 @@ public class VacancyChange {
     @Column(name = "changed_at", nullable = false, updatable = false)
     private Instant changedAt;
 
+    // Учёт публикации в RabbitMQ (outbox). Меняются запросами из VacancyChangeRepository,
+    // а не через сеттеры: так обновление идёт по полному ключу (id + changed_at).
+    @Column(name = "published_at")
+    private Instant publishedAt;
+
+    @Column(name = "publish_attempts", nullable = false)
+    private int publishAttempts;
+
+    @Column(name = "last_publish_error")
+    private String lastPublishError;
+
     protected VacancyChange() {
         // нужен JPA
     }
@@ -59,7 +71,9 @@ public class VacancyChange {
     @PrePersist
     void onCreate() {
         if (changedAt == null) {
-            changedAt = Instant.now();
+            // PostgreSQL хранит время с точностью до микросекунд, а Instant.now() может дать наносекунды.
+            // Без округления значение в событии не совпало бы с тем, что лежит в базе (ломает ключ и FK).
+            changedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
         }
     }
 
@@ -72,4 +86,10 @@ public class VacancyChange {
     public Map<String, List<Object>> getChanges() { return changes; }
 
     public Instant getChangedAt() { return changedAt; }
+
+    public Instant getPublishedAt() { return publishedAt; }
+
+    public int getPublishAttempts() { return publishAttempts; }
+
+    public String getLastPublishError() { return lastPublishError; }
 }

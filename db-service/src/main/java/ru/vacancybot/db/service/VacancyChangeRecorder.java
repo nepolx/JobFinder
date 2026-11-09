@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.vacancybot.common.dto.VacancyChangeDto;
 import ru.vacancybot.db.entity.Vacancy;
 import ru.vacancybot.db.entity.VacancyChange;
+import ru.vacancybot.db.mapper.VacancyChangeMapper;
 import ru.vacancybot.db.repository.VacancyChangeRepository;
 import ru.vacancybot.db.repository.VacancyRepository;
 
@@ -31,7 +32,7 @@ public class VacancyChangeRecorder {
         vacancyRepository.saveAndFlush(vacancy);
         VacancyChange change = changeRepository.saveAndFlush(
                 new VacancyChange(vacancy.getId(), VacancyChange.CREATED, null));
-        return toDto(change);
+        return VacancyChangeMapper.toDto(change);
     }
 
     /** Изменённая вакансия: сохраняет новое состояние и пишет событие "updated" с перечнем изменений. */
@@ -40,15 +41,6 @@ public class VacancyChangeRecorder {
         vacancyRepository.saveAndFlush(vacancy);
         VacancyChange change = changeRepository.saveAndFlush(
                 new VacancyChange(vacancy.getId(), VacancyChange.UPDATED, changes));
-        return toDto(change);
-    }
-
-    private static VacancyChangeDto toDto(VacancyChange c) {
-        return new VacancyChangeDto(
-                c.getId(),
-                c.getChangedAt(),
-                c.getVacancyId().toString(),
-                c.getChangeType(),
-                c.getChanges());
+        return VacancyChangeMapper.toDto(change);
     }
 }

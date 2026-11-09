@@ -37,4 +37,6 @@ public class VacancySyncController {
     public Instant lastModified() {
         return vacancyRepository.findLastModified().orElse(null);
     }
+
+
 }

@@ -5,9 +5,6 @@ import ru.vacancybot.db.entity.Vacancy;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Сравнение двух версий вакансии. Реализует Маша (см. VacancyComparatorImpl).
- */
 public interface VacancyComparator {
 
     /**
