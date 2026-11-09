@@ -12,15 +12,12 @@ spring:
     redis:
       host: localhost
       port: 6379
-worker:
-  poll-interval: 60s
-  pool-size: 4
-trudvsem:
-  base-url: https://opendata.trudvsem.ru/api/v1
-  connect-timeout: 5s
-  read-timeout: 10s
-  max-retries: 3
-  cache-ttl: 3m
+  worker:
+    trudvsem:
+      base-url: http://opendata.trudvsem.ru
+      page-size: 100
+      connect-timeout: 5s
+      read-timeout: 10s
 clients:
   db-service:
     base-url: http://localhost:8081
