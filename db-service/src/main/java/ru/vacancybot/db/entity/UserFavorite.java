@@ -17,7 +17,6 @@ import java.util.UUID;
 @IdClass(UserFavoriteId.class)
 public class UserFavorite {
 
-    /** Допустимые значения status (совпадают с CHECK в БД). */
     public static final String STATUS_SAVED = "saved";       // просто сохранена
     public static final String STATUS_APPLIED = "applied";   // откликнулся
     public static final String STATUS_WAITING = "waiting";   // жду ответа

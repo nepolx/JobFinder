@@ -12,9 +12,6 @@ import java.time.Instant;
 
 /**
  * Подписка пользователя на поиск вакансий. Таблица subscriptions.
- *
- * Колонка query_tsq (tsquery) генерируется базой из title и keywords,
- * поэтому в сущность она намеренно НЕ добавлена.
  */
 @Entity
 @Table(name = "subscriptions")
