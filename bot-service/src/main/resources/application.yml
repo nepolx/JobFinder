@@ -15,11 +15,11 @@ bot:
   support-contact: ${BOT_SUPPORT_CONTACT:}                      # показывается в /help
   session-store: ${BOT_SESSION_STORE:memory}                    # memory — для разработки, redis — для нескольких реплик
   stubs:
-    enabled: true        # true — заглушки вместо db-service; false, когда появятся реальные клиенты
+    enabled: ${BOT_STUBS_ENABLED:false}   # false — реальный db-service; true — заглушки в памяти (когда db-service не запущен)
   dev-endpoints: false   # true — POST /dev/notify/{telegramId} (только для разработки!)
 clients:
   db-service:
-    base-url: http://localhost:8081
+    base-url: ${DB_SERVICE_URL:http://localhost:8081}
 management:
   endpoints:
     web:

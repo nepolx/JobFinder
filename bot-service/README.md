@@ -1,7 +1,7 @@
 # bot-service
 
 Telegram-бот: webhook, FSM `/subscribe`, подписки, избранное. Модуль stateless (контекст диалога — в Redis).
-Пока db-service не готов, вместо него работают заглушки в памяти (`stub/`).
+Данные берёт у db-service по REST (`client/`, контракт — `API.md`, часть A). Если db-service не запущен, `BOT_STUBS_ENABLED=true` включает заглушки в памяти (`stub/`).
 
 ## Запуск локально (без docker compose)
 
@@ -9,6 +9,8 @@ Telegram-бот: webhook, FSM `/subscribe`, подписки, избранное
 export BOT_TOKEN=...                                   # токен от @BotFather
 export BOT_WEBHOOK_URL=https://xxxx.ngrok-free.app/webhook   # ngrok http 8080; адрес должен заканчиваться на /webhook
 export BOT_WEBHOOK_SECRET=abc123_secret                # необязательно
+export DB_SERVICE_URL=http://localhost:8081            # по умолчанию так же; нужен запущенный db-service
+# нет db-service? export BOT_STUBS_ENABLED=true
 mvn -pl bot-service spring-boot:run
 ```
 
@@ -17,10 +19,16 @@ mvn -pl bot-service spring-boot:run
 Проверка уведомлений без notifier: `bot.dev-endpoints=true`, затем
 `curl -X POST localhost:8080/dev/notify/<telegram_id>` (только локально!).
 
-## Что подключить вместо заглушек
+## Связь с db-service
 
-Контракт с db-service — интерфейсы в `port/` (`UserService`, `SubscriptionService`, `FavoriteService`, `RegionClassifier`).
-Реализации будут HTTP-клиентами в `client/`; затем `bot.stubs.enabled=false`. Остальной код бота не меняется.
+Интерфейсы в `port/` реализованы HTTP-клиентами в `client/` (`HttpUserService`, `HttpSubscriptionService`, `HttpFavoriteService`).
+Они включаются при `bot.stubs.enabled=false` (значение по умолчанию). Карточки для `/favorites` собираются двумя запросами:
+`GET .../favorites` и `GET /api/vacancies?ids=...`.
+
+Не на REST: `RegionClassifier` всегда работает на заглушке, потому что эндпоинта регионов в db-service пока нет (API.md, часть B).
+Когда он появится, добавьте `HttpRegionClassifier` (кэш в памяти) и уберите `StubRegionClassifier`.
+
+Для `GET /api/vacancies` бот использует свой record `VacancyResponse`. Когда `VacancyDto` попадёт в `common`, его можно заменить на него.
 
 Для нескольких реплик: `BOT_SESSION_STORE=redis` (`RedisSessionStore`, TTL 6 часов).
 

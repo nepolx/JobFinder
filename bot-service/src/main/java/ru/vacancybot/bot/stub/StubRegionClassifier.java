@@ -1,6 +1,5 @@
 package ru.vacancybot.bot.stub;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import ru.vacancybot.bot.domain.Region;
 import ru.vacancybot.bot.port.RegionClassifier;
@@ -9,9 +8,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-/** Заглушка: несколько регионов с кодами в формате trudvsem.ru. */
+/** Заглушка: несколько регионов с кодами в формате trudvsem.ru. Нужна всегда: эндпоинта регионов в db-service пока нет. */
 @Service
-@ConditionalOnProperty(name = "bot.stubs.enabled", havingValue = "true", matchIfMissing = true)
 public class StubRegionClassifier implements RegionClassifier {
 
     public static final Region MOSCOW = new Region("7700000000000", "Москва");

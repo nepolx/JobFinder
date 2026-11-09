@@ -73,7 +73,12 @@ public class FavoriteHandler {
     }
 
     private void add(CallbackCtx cb, String id) {
-        favorites.add(cb.userId(), id);
+        try {
+            favorites.add(cb.userId(), id);
+        } catch (java.util.NoSuchElementException e) {
+            tg.answerCallbackQuery(cb.queryId(), "Эта вакансия уже недоступна");
+            return;
+        }
         tg.answerCallbackQuery(cb.queryId(), "Добавлено в избранное");
         // Под уведомлением убираем только «В избранное», «Отписаться» остаётся.
         tg.editMessageReplyMarkup(cb.chatId(), cb.messageId(),

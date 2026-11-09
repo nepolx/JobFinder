@@ -28,7 +28,7 @@ class RouterTest {
         Harness h = new Harness();
         h.say("/start");
         assertEquals(h.fmt.welcome(), h.lastText());
-        assertEquals(1L, h.users.register(Harness.UID));
+        assertTrue(h.users.isRegistered(Harness.UID));
     }
 
     @Test

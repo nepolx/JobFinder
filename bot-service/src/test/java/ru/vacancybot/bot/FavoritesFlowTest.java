@@ -133,4 +133,22 @@ class FavoritesFlowTest {
         assertEquals("Вакансии уже нет в избранном", h.tg.lastAnswer());
         assertTrue(card.callbacks().isEmpty());
     }
+
+    @Test
+    void addingVacancyThatNoLongerExists_isAnsweredAndKeyboardKept() {
+        var failing = new ru.vacancybot.bot.stub.StubFavoriteService() {
+            @Override
+            public synchronized void add(long telegramId, String vacancyId) {
+                throw new java.util.NoSuchElementException("gone");
+            }
+        };
+        Harness h = new Harness(new ru.vacancybot.bot.stub.StubSubscriptionService(), failing);
+        h.sender.sendNewVacancy(Harness.UID, V, 7);
+        var msg = h.tg.last();
+
+        h.press("fav_add_" + ID);
+
+        assertEquals("Эта вакансия уже недоступна", h.tg.lastAnswer());
+        assertEquals(List.of("fav_add_" + ID, "sub_del_7"), msg.callbacks());
+    }
 }

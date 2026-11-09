@@ -6,6 +6,5 @@ package ru.vacancybot.bot.port;
  */
 public interface UserService {
 
-    /** @return внутренний users.id */
-    long register(long telegramId);
+    void register(long telegramId);
 }

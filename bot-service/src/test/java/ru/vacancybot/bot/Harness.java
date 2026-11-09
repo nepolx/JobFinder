@@ -27,7 +27,7 @@ public class Harness {
 
     public final FakeTelegramClient tg = new FakeTelegramClient();
     public final StubSubscriptionService subs;
-    public final StubFavoriteService favs = new StubFavoriteService();
+    public final StubFavoriteService favs;
     public final StubUserService users = new StubUserService();
     public final StubRegionClassifier regions = new StubRegionClassifier();
     public final MessageFormatter fmt = new MessageFormatter("@jobfinder_support");
@@ -40,7 +40,12 @@ public class Harness {
     }
 
     public Harness(StubSubscriptionService subs) {
+        this(subs, new StubFavoriteService());
+    }
+
+    public Harness(StubSubscriptionService subs, StubFavoriteService favs) {
         this.subs = subs;
+        this.favs = favs;
         WizardHandler wizard = new WizardHandler(tg, subs, regions, fmt);
         SubscriptionHandler subscriptionHandler = new SubscriptionHandler(tg, subs, regions, fmt, wizard);
         FavoriteHandler favoriteHandler = new FavoriteHandler(tg, favs, fmt);
