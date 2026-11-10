@@ -18,6 +18,12 @@ spring:
       page-size: 100
       connect-timeout: 5s
       read-timeout: 10s
+    sync:
+      window-size: 1h
+      max-reload-attempts: 2
+      max-retries: 3
+      retry-base-delay: 1s
+      pause-between-requests: 100ms
 clients:
   db-service:
     base-url: http://localhost:8081

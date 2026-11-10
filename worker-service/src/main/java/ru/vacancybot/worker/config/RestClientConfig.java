@@ -8,7 +8,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 @Configuration
-@EnableConfigurationProperties(TrudvsemApiProperties.class)
+@EnableConfigurationProperties({TrudvsemApiProperties.class, SyncProperties.class})
 public class RestClientConfig {
 
     @Bean

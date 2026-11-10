@@ -1,13 +1,15 @@
 package ru.vacancybot.worker.exception;
 
+import lombok.Getter;
+
 /**
  * Ошибка при обращении к API trudvsem.ru.
  *
  * <p>{@link #isRetryable()} подсказывает слою повторов, есть ли смысл повторять запрос:
  * таймауты, сетевые сбои, 5xx и 429 да; ошибки разбора и 4xx нет.
  */
+@Getter
 public class TrudvsemApiException extends RuntimeException {
-
     private final Integer httpStatus;
     private final boolean retryable;
 
@@ -29,14 +31,5 @@ public class TrudvsemApiException extends RuntimeException {
         super(message, cause);
         this.httpStatus = null;
         this.retryable = retryable;
-    }
-
-    /** HTTP-код ответа или {@code null}, если ответа не было или ошибка в теле. */
-    public Integer getHttpStatus() {
-        return httpStatus;
-    }
-
-    public boolean isRetryable() {
-        return retryable;
     }
 }

@@ -72,7 +72,6 @@ public class TrudvsemApiClient {
         }
         Objects.requireNonNull(modifiedFrom, "modifiedFrom must not be null");
 
-        // API хранит время с точностью до секунды; доли секунды только ломают формат запроса
         Instant from = modifiedFrom.truncatedTo(ChronoUnit.SECONDS);
         Instant to = modifiedTo == null ? null : modifiedTo.truncatedTo(ChronoUnit.SECONDS);
         if (to != null && to.isBefore(from)) {
@@ -109,13 +108,10 @@ public class TrudvsemApiClient {
                     })
                     .body(TrudvsemApiResponse.class);
         } catch (ResourceAccessException e) {
-            // таймаут чтения/соединения, обрыв сети: имеет смысл повторить
             throw new TrudvsemApiException("Trudvsem API is unreachable or timed out", e, true);
         } catch (RestClientException e) {
-            // например, тело ответа не удалось разобрать: повтор не поможет
             throw new TrudvsemApiException("Failed to read response of Trudvsem API", e, false);
         }
-
         return toPage(response, page, limit);
     }
 
@@ -133,7 +129,7 @@ public class TrudvsemApiClient {
         if (page.isEmpty()) {
             return Optional.empty();
         }
-        String dateModify = page.vacancies().get(0).dateModify();
+        String dateModify = page.vacancies().getFirst().dateModify();
         try {
             return Optional.of(TrudvsemDateParser.parse(dateModify));
         } catch (IllegalArgumentException e) {
@@ -145,7 +141,6 @@ public class TrudvsemApiClient {
         if (response == null) {
             throw new TrudvsemApiException("Trudvsem API returned empty response", (Integer) null, true);
         }
-        // ошибки API могут приходить с HTTP 200, но со status != "200" в теле
         if (!"200".equals(response.status())) {
             String details = response.meta() == null ? null : response.meta().error();
             throw new TrudvsemApiException(
