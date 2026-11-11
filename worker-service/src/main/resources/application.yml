@@ -24,6 +24,10 @@ spring:
       max-retries: 3
       retry-base-delay: 1s
       pause-between-requests: 100ms
+    db-service:
+      base-url: http://localhost:8081
+      connect-timeout: 2s
+      read-timeout: 30s
 clients:
   db-service:
     base-url: http://localhost:8081
