@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 public record VacancyChangeDto(
-        long changeId,
+        Long changeId,
         Instant changedAt,
         String vacancyId,
         String changeType,

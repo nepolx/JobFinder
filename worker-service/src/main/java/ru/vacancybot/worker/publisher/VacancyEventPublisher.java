@@ -12,7 +12,7 @@ import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 import ru.vacancybot.worker.config.EventsProperties;
-import ru.vacancybot.worker.dto.dbservice.ChangeKey;
+import ru.vacancybot.worker.dto.dbservice.ChangeKeyDto;
 import ru.vacancybot.worker.dto.dbservice.VacancyChangeDto;
 import ru.vacancybot.worker.dto.event.VacancyEvent;
 
@@ -40,23 +40,23 @@ public class VacancyEventPublisher {
         this.properties = properties;
     }
 
-    public record PublishOutcome(List<ChangeKey> confirmed,
-                                 Map<ChangeKey, String> rejected,
+    public record PublishOutcome(List<ChangeKeyDto> confirmed,
+                                 Map<ChangeKeyDto, String> rejected,
                                  String brokerError) {
     }
 
-    private record Sent(ChangeKey key, CorrelationData correlation) {
+    private record Sent(ChangeKeyDto key, CorrelationData correlation) {
     }
 
     public PublishOutcome publish(List<VacancyChangeDto> changes) {
-        List<ChangeKey> confirmed = new ArrayList<>();
-        Map<ChangeKey, String> rejected = new LinkedHashMap<>();
+        List<ChangeKeyDto> confirmed = new ArrayList<>();
+        Map<ChangeKeyDto, String> rejected = new LinkedHashMap<>();
         List<Sent> sent = new ArrayList<>();
         String brokerError = null;
 
         // 1. отправляем всё, не дожидаясь подтверждений по одному
         for (VacancyChangeDto change : changes) {
-            ChangeKey key = ChangeKey.of(change);
+            ChangeKeyDto key = ChangeKeyDto.of(change);
 
             VacancyEvent event;
             byte[] body;

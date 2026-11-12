@@ -12,7 +12,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import ru.vacancybot.worker.config.SyncProperties;
-import ru.vacancybot.worker.dto.dbservice.ChangeKey;
+import ru.vacancybot.worker.dto.dbservice.ChangeKeyDto;
 import ru.vacancybot.worker.dto.dbservice.RegionDto;
 import ru.vacancybot.worker.dto.dbservice.SyncStateDto;
 import ru.vacancybot.worker.dto.dbservice.VacancyChangeDto;
@@ -152,10 +152,10 @@ public class DbServiceClient {
         });
     }
 
-    public int markPublished(List<ChangeKey> keys) {
+    public int markPublished(List<ChangeKeyDto> keys) {
         int marked = 0;
         for (int from = 0; from < keys.size(); from += MAX_PUBLISHED_KEYS) {
-            List<ChangeKey> chunk = keys.subList(from, Math.min(from + MAX_PUBLISHED_KEYS, keys.size()));
+            List<ChangeKeyDto> chunk = keys.subList(from, Math.min(from + MAX_PUBLISHED_KEYS, keys.size()));
             MarkedResponse response = execute("published", () -> withErrorHandling(
                     restClient.post()
                             .uri("/api/changes/published")
@@ -169,7 +169,7 @@ public class DbServiceClient {
         return marked;
     }
 
-    public int markPublishFailed(ChangeKey key, String error) {
+    public int markPublishFailed(ChangeKeyDto key, String error) {
         PublishFailedRequest request =
                 new PublishFailedRequest(key.changeId(), key.changedAt(), truncate(error));
         UpdatedResponse response = execute("publish-failed", () -> withErrorHandling(

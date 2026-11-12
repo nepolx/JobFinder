@@ -1,3 +1,3 @@
 package ru.vacancybot.worker.dto.dbservice;
 
-public record RegionDto(String code, String name, boolean popular) {}
+public record RegionDto(String code, String name) {}
