@@ -1,5 +1,6 @@
 server:
   port: 8082
+
 spring:
   application:
     name: worker-service
@@ -12,35 +13,34 @@ spring:
     publisher-returns: true
     template:
       mandatory: true
-  worker:
-    trudvsem:
-      base-url: http://opendata.trudvsem.ru
-      page-size: 100
-      connect-timeout: 5s
-      read-timeout: 10s
-    sync:
-      window-size: 1h
-      max-reload-attempts: 2
-      max-retries: 3
-      retry-base-delay: 1s
-      pause-between-requests: 100ms
-    db-service:
-      base-url: http://localhost:8081
-      connect-timeout: 2s
-      read-timeout: 30s
-    events:
-      queue: vacancy.events
-      batch-size: 200
-      confirm-timeout: 10s
-    run:
-      overlap: 2h
-      initial-lookback: 24h
-      enabled: true
-      interval-ms: 300000
-      initial-delay-ms: 30000
-clients:
+
+worker:
+  trudvsem:
+    base-url: http://opendata.trudvsem.ru
+    page-size: 100
+    connect-timeout: 5s
+    read-timeout: 10s
+  sync:
+    window-size: 1h
+    max-reload-attempts: 2
+    max-retries: 3
+    retry-base-delay: 1s
+    pause-between-requests: 100ms
   db-service:
     base-url: http://localhost:8081
+    connect-timeout: 2s
+    read-timeout: 30s
+  events:
+    queue: vacancy.events
+    batch-size: 200
+    confirm-timeout: 10s
+  run:
+    overlap: 2h
+    initial-lookback: 24h
+    enabled: true
+    interval-ms: 300000
+    initial-delay-ms: 30000
+
 management:
   endpoints:
     web:
