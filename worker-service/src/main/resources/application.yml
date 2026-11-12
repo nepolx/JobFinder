@@ -12,10 +12,6 @@ spring:
     publisher-returns: true
     template:
       mandatory: true
-  data:
-    redis:
-      host: localhost
-      port: 6379
   worker:
     trudvsem:
       base-url: http://opendata.trudvsem.ru
@@ -36,6 +32,12 @@ spring:
       queue: vacancy.events
       batch-size: 200
       confirm-timeout: 10s
+    run:
+      overlap: 2h
+      initial-lookback: 24h
+      enabled: true
+      interval-ms: 300000
+      initial-delay-ms: 30000
 clients:
   db-service:
     base-url: http://localhost:8081

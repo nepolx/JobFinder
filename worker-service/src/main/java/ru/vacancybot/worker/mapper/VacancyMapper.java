@@ -101,7 +101,15 @@ public class VacancyMapper {
                 .replaceAll("\\s+", " ")
                 .trim();
 
-        // порядок важен: «неполный» содержит «полный»
+        String code = getCode(text);
+
+        if (code == null && unknownSchedules.add(text)) {
+            log.warn("Unknown schedule value from API: '{}'", schedule);
+        }
+        return code;
+    }
+
+    private static String getCode(String text) {
         String code;
         if (text.contains("вахт")) {
             code = "rotation";
@@ -117,10 +125,6 @@ public class VacancyMapper {
             code = "full";
         } else {
             code = null;
-        }
-
-        if (code == null && unknownSchedules.add(text)) {
-            log.warn("Unknown schedule value from API: '{}'", schedule);
         }
         return code;
     }

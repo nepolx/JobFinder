@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 @Slf4j
 @Service
@@ -32,19 +34,19 @@ public class VacancyWindowLoader {
 
     public void load(Instant from, Instant to, WindowHandler handler) {
         Instant start = from.truncatedTo(ChronoUnit.SECONDS);
-        Instant limit = to.truncatedTo(ChronoUnit.SECONDS);
-        if (start.isAfter(limit)) {
-            log.debug("Nothing to load: from {} is after to {}", start, limit);
+        Instant upperBound = to.truncatedTo(ChronoUnit.SECONDS);
+        if (start.isAfter(upperBound)) {
+            log.debug("Nothing to load: from {} is after to {}", start, upperBound);
             return;
         }
 
         while (true) {
             Instant end = start.plus(properties.windowSize()).truncatedTo(ChronoUnit.SECONDS);
-            if (end.isAfter(limit)) {
-                end = limit;
+            if (end.isAfter(upperBound)) {
+                end = upperBound;
             }
             loadWindow(start, end, handler);
-            if (!end.isBefore(limit)) {
+            if (!end.isBefore(upperBound)) {
                 return;
             }
             start = end;
@@ -92,7 +94,6 @@ public class VacancyWindowLoader {
         }
     }
 
-    /** Делит окно пополам; левая половина обрабатывается раньше правой. */
     private void split(Instant start, Instant end, int total, WindowHandler handler) {
         long seconds = Duration.between(start, end).getSeconds();
         if (seconds == 0) {
@@ -111,7 +112,6 @@ public class VacancyWindowLoader {
         loadWindow(middle, end, handler);
     }
 
-    /** Одна и та же вакансия может прийти дважды при сдвиге страниц; оставляем первую (самую новую). */
     private List<TrudvsemVacancyDto> deduplicate(List<TrudvsemVacancyDto> raw) {
         Map<String, TrudvsemVacancyDto> byId = new LinkedHashMap<>();
         for (TrudvsemVacancyDto vacancy : raw) {
@@ -124,20 +124,29 @@ public class VacancyWindowLoader {
         return new ArrayList<>(byId.values());
     }
 
-    /** Запрос страницы с повторами при временных ошибках и паузой после успешного запроса. */
+    public Optional<Instant> findLatestModified(Instant from) {
+        Optional<Instant> latest = withRetry("latest modified", () -> client.findLatestModified(from));
+        sleep(properties.pauseBetweenRequests().toMillis());
+        return latest;
+    }
+
     private VacancyPage fetch(int page, Instant from, Instant to) {
+        VacancyPage result = withRetry("page " + page, () -> client.fetchPage(page, from, to));
+        sleep(properties.pauseBetweenRequests().toMillis());
+        return result;
+    }
+
+    private <T> T withRetry(String what, Supplier<T> call) {
         for (int attempt = 0; ; attempt++) {
             try {
-                VacancyPage result = client.fetchPage(page, from, to);
-                sleep(properties.pauseBetweenRequests().toMillis());
-                return result;
+                return call.get();
             } catch (TrudvsemApiException e) {
                 if (!e.isRetryable() || attempt >= properties.maxRetries()) {
                     throw e;
                 }
                 long delay = properties.retryBaseDelay().toMillis() * (1L << attempt);
-                log.warn("Trudvsem request failed (page {}, attempt {}): {}. Retrying in {} ms",
-                        page, attempt + 1, e.getMessage(), delay);
+                log.warn("Trudvsem request '{}' failed (attempt {}): {}. Retrying in {} ms",
+                        what, attempt + 1, e.getMessage(), delay);
                 sleep(delay);
             }
         }
