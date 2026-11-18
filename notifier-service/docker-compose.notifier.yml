@@ -1,0 +1,23 @@
+# Фрагмент для общего docker-compose.yml (имена сервисов подставьте свои).
+# Схему БД создаёт db-service (Flyway): Notifier должен стартовать после него.
+services:
+  notifier:
+    build: ./notifier
+    restart: unless-stopped
+    depends_on:
+      db-service: { condition: service_started }
+      postgres:   { condition: service_healthy }
+      redis:      { condition: service_started }
+      rabbitmq:   { condition: service_healthy }
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      DB_URL: jdbc:postgresql://postgres:5432/app
+      DB_USER: app
+      DB_PASSWORD: app
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: app
+      RABBITMQ_PASSWORD: app
+      # GLOBAL_RATE: "25"        # общий лимит сообщений/с на все копии
+      # PER_CHAT_RATE: "1"
+    # Масштабирование: docker compose up -d --scale notifier=3
