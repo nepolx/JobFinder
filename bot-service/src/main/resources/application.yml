@@ -10,10 +10,16 @@ spring:
 bot:
   token: ${BOT_TOKEN:changeme}
   username: ${BOT_USERNAME:changeme_bot}
-  webhook-url: ${BOT_WEBHOOK_URL:https://example.com/webhook}
+  webhook-url: ${BOT_WEBHOOK_URL:https://example.com/webhook}   # полный адрес, заканчивается на /webhook
+  webhook-secret: ${BOT_WEBHOOK_SECRET:}                        # необязательно: A-Z a-z 0-9 _ -
+  support-contact: ${BOT_SUPPORT_CONTACT:}                      # показывается в /help
+  session-store: ${BOT_SESSION_STORE:memory}                    # memory — для разработки, redis — для нескольких реплик
+  stubs:
+    enabled: ${BOT_STUBS_ENABLED:false}   # false — реальный db-service; true — заглушки в памяти (когда db-service не запущен)
+  dev-endpoints: false   # true — POST /dev/notify/{telegramId} (только для разработки!)
 clients:
   db-service:
-    base-url: http://localhost:8081
+    base-url: ${DB_SERVICE_URL:http://localhost:8081}
 management:
   endpoints:
     web:
