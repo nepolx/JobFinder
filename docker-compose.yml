@@ -85,6 +85,9 @@ services:
       WORKER_EVENTS_QUEUE: vacancy.events
     ports:
       - "8082:8082"     # только /actuator/health и /actuator/info
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
 
   # Читает очередь vacancy.events, подбирает получателей в базе, отправляет в Telegram.
   # Порт не слушает. Объявляет очередь vacancy.events при старте.
