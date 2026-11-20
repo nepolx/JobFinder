@@ -24,7 +24,7 @@ public final class JacksonEventParser implements EventParser {
         try {
             return ChangeEvent.fromMap(mapper.readValue(body, MAP_TYPE));
         } catch (IOException e) {
-            throw new InvalidEventException("невалидный JSON: " + e.getOriginalMessage(), e);
+            throw new InvalidEventException("невалидный JSON: " + e.getMessage(), e);
         }
     }
 }
