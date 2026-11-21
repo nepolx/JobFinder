@@ -23,7 +23,7 @@ class MenuTest {
         Harness h = new Harness();
         h.say("/start");
 
-        assertEquals(List.of(MenuButtons.SUBSCRIBE, MenuButtons.SUBSCRIPTIONS, MenuButtons.BROWSE,
+        assertEquals(List.of(MenuButtons.SUBSCRIBE, MenuButtons.SUBSCRIPTIONS,
                 MenuButtons.FAVORITES, MenuButtons.HELP), labels(h));
         assertTrue(h.tg.last().replyKeyboard.resizeKeyboard());
         assertTrue(h.tg.last().replyKeyboard.persistent());
@@ -33,7 +33,7 @@ class MenuTest {
     void help_alsoShowsMenu_forUsersWhoStartedBeforeTheMenuExisted() {
         Harness h = new Harness();
         h.say("/help");
-        assertEquals(5, labels(h).size());
+        assertEquals(4, labels(h).size());
     }
 
     @Test
@@ -48,9 +48,6 @@ class MenuTest {
 
         h.say(MenuButtons.HELP);
         assertTrue(h.lastText().contains("Как это работает"));
-
-        h.say(MenuButtons.BROWSE);
-        assertTrue(h.lastText().startsWith("🔥 Подборка"));
 
         h.say(MenuButtons.SUBSCRIBE);
         assertEquals("Введите название вакансии (например: Java разработчик):", h.lastText());
@@ -71,8 +68,8 @@ class MenuTest {
 
     @Test
     void commandFor_matchesOnlyExactMenuLabels() {
-        assertEquals("/browse", MenuButtons.commandFor("  🔥 Подборка "));
-        assertNull(MenuButtons.commandFor("Подборка"));
+        assertEquals("/favorites", MenuButtons.commandFor("  ⭐ Избранное "));
+        assertNull(MenuButtons.commandFor("Избранное"));
         assertNull(MenuButtons.commandFor(null));
     }
 }

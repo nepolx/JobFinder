@@ -32,8 +32,6 @@ public class MessageFormatter {
     public static final String NO_FAVORITES = "В избранном пусто. Нажмите «В избранное» под вакансией в уведомлении.";
     public static final String SERVICE_ERROR = "Что-то пошло не так. Попробуйте ещё раз чуть позже.";
     public static final String SUBSCRIPTION_CARD_PREFIX = "Подписка №";
-    public static final String FEED_EMPTY = "Пока новых вакансий нет. Загляните позже или настройте подписку: /subscribe";
-    public static final String FEED_UNAVAILABLE = "Подборка пока недоступна. Загляните позже.";
 
     private final String supportContact;
 
@@ -47,7 +45,6 @@ public class MessageFormatter {
         return "Привет! Я JobFinder — слежу за вакансиями на портале «Работа в России» (trudvsem.ru) "
                 + "и пишу вам, когда появляется подходящая вакансия или меняются условия в избранной.\n\n"
                 + "Что я умею:\n"
-                + "/browse — подборка вакансий: 👍 в избранное, 👎 пропустить\n"
                 + "/subscribe — создать подписку на поиск\n"
                 + "/subscriptions — мои подписки\n"
                 + "/favorites — избранные вакансии\n"
@@ -62,7 +59,7 @@ public class MessageFormatter {
                 + "2. Когда на портале появится подходящая вакансия, я пришлю ссылку.\n"
                 + "3. Нажмите 👍 под вакансией, и я сообщу, если изменятся зарплата, график, "
                 + "требования или вакансию закроют. 👎 убирает вакансию.\n"
-                + "4. /browse — подборка вакансий по одной: листайте 👍 / 👎.\n\n"
+                + "\n"
                 + "Формат поиска:\n"
                 + "• название — текстом, до 100 символов;\n"
                 + "• зарплата — целое число в рублях, например 80000;\n"
@@ -133,20 +130,6 @@ public class MessageFormatter {
                 + "• График: " + (c.scheduleCode() == null ? NOT_IMPORTANT : Coded.labelOrCode(ScheduleType.class, c.scheduleCode())) + "\n"
                 + "• Занятость: " + (c.employmentCode() == null ? NOT_IMPORTANT : Coded.labelOrCode(EmploymentType.class, c.employmentCode())) + "\n"
                 + "• Ключевые слова: " + orNotImportant(c.keywords());
-    }
-
-    /** Карточка вакансии в режиме подборки. */
-    public String feedCard(Vacancy v) {
-        StringBuilder sb = new StringBuilder("🔥 Подборка\n");
-        sb.append(v.jobName()).append('\n');
-        sb.append("Работодатель: ").append(v.employerName()).append('\n');
-        sb.append("Регион: ").append(v.regionName()).append('\n');
-        sb.append("Зарплата: ").append(salary(v.salaryMin(), v.salaryMax())).append('\n');
-        if (hasText(v.schedule())) {
-            sb.append("График: ").append(v.schedule()).append('\n');
-        }
-        sb.append("Ссылка: ").append(v.url());
-        return sb.toString();
     }
 
     // ---------- уведомления (Push Payload) ----------

@@ -48,7 +48,7 @@ mvn -pl bot-service spring-boot:run
 ## Меню под полем ввода
 
 После `/start` (и `/help`) под полем ввода появляется постоянное меню: ➕ Новая подписка, 📋 Мои подписки,
-🔥 Подборка, ⭐ Избранное, ❓ Помощь. Нажатие работает как команда и прерывает незаконченный мастер.
+⭐ Избранное, ❓ Помощь. Нажатие работает как команда и прерывает незаконченный мастер.
 
 ## Мастер подписки не засоряет чат
 
@@ -56,24 +56,10 @@ mvn -pl bot-service spring-boot:run
 (подтверждение, отмена, другая команда или перезапуск). В чате остаётся только итог. Если сервис упал при подтверждении,
 сообщения остаются, и можно нажать «Создать подписку» ещё раз.
 
-## Подборка (/browse): 👍 / 👎
-
-Карточки вакансий по одной: 👍 кладёт в избранное, 👎 пропускает, карточка заменяется следующей, «Закончить» останавливает.
-Оценённые вакансии не повторяются.
-
-Нужны два новых эндпоинта в db-service (в API.md их пока нет, **предложение на согласование**):
-
-| Метод | Путь | Ответ |
-|---|---|---|
-| GET | `/api/users/{telegramId}/feed/next` | `200` + `VacancyDto` следующей вакансии под активные подписки, которую пользователь ещё не оценивал; `204`, если показывать нечего |
-| POST | `/api/users/{telegramId}/feed/{vacancyId}/seen` | `204`; вакансия больше не показывается (вызывается и для 👍, и для 👎) |
-
-Пока эндпоинтов нет (`404`/`405`), бот отвечает «Подборка пока недоступна» и продолжает работать. С `BOT_STUBS_ENABLED=true` подборка идёт из примеров.
-
 ## Структура
 
 ```
-handler/   UpdateRouter → CommandHandler, WizardHandler (FSM), SubscriptionHandler, FavoriteHandler, FeedHandler
+handler/   UpdateRouter → CommandHandler, WizardHandler (FSM), SubscriptionHandler, FavoriteHandler
 fsm/       DialogState, Session, SessionStore (память / Redis), InputValidator
 view/      MessageFormatter (все тексты), Keyboards, MenuButtons, CallbackData
 telegram/  TelegramClient, RestTelegramClient, WebhookRegistrar, dto/

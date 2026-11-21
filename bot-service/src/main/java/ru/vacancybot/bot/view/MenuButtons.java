@@ -11,14 +11,12 @@ public final class MenuButtons {
 
     public static final String SUBSCRIBE = "➕ Новая подписка";
     public static final String SUBSCRIPTIONS = "📋 Мои подписки";
-    public static final String BROWSE = "🔥 Подборка";
     public static final String FAVORITES = "⭐ Избранное";
     public static final String HELP = "❓ Помощь";
 
     private static final Map<String, String> COMMANDS = Map.of(
             SUBSCRIBE, "/subscribe",
             SUBSCRIPTIONS, "/subscriptions",
-            BROWSE, "/browse",
             FAVORITES, "/favorites",
             HELP, "/help");
 
@@ -33,8 +31,7 @@ public final class MenuButtons {
     public static ReplyKeyboardMarkup markup() {
         return new ReplyKeyboardMarkup(List.of(
                 List.of(new KeyboardButton(SUBSCRIBE), new KeyboardButton(SUBSCRIPTIONS)),
-                List.of(new KeyboardButton(BROWSE), new KeyboardButton(FAVORITES)),
-                List.of(new KeyboardButton(HELP))),
+                List.of(new KeyboardButton(FAVORITES), new KeyboardButton(HELP))),
                 true, true);
     }
 }

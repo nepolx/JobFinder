@@ -69,6 +69,6 @@ class TelegramDtoJsonTest {
         String json = mapper.writeValueAsString(ru.vacancybot.bot.view.MenuButtons.markup());
         assertTrue(json.contains("\"resize_keyboard\":true"));
         assertTrue(json.contains("\"is_persistent\":true"));
-        assertTrue(json.contains("\"text\":\"🔥 Подборка\""));
+        assertTrue(json.contains("\"text\":\"⭐ Избранное\""));
     }
 }

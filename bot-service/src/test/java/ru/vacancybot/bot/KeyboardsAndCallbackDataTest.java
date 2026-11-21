@@ -48,7 +48,6 @@ class KeyboardsAndCallbackDataTest {
         all.add(Keyboards.favoriteCard(new Favorite(SampleVacancies.NEW_VACANCY, FavoriteStatus.SAVED)));
         all.add(Keyboards.favoriteStatuses(UUID.randomUUID().toString()));
         all.add(Keyboards.newVacancy(UUID.randomUUID().toString(), Long.MAX_VALUE));
-        all.add(Keyboards.feedCard(UUID.randomUUID().toString()));
 
         for (InlineKeyboardMarkup m : all) {
             for (String data : callbacks(m)) {
@@ -99,7 +98,7 @@ class KeyboardsAndCallbackDataTest {
                 "sub_exp_none", "sub_sch_full", "sub_emp_temp")) {
             assertTrue(CallbackData.isWizard(wizard), wizard);
         }
-        for (String other : List.of("sub_del_1", "sub_pause_1", "sub_resume_1", "sub_edit_1", "fav_add_x", "vac_skip_x", "feed_stop", "")) {
+        for (String other : List.of("sub_del_1", "sub_pause_1", "sub_resume_1", "sub_edit_1", "fav_add_x", "vac_skip_x", "")) {
             assertFalse(CallbackData.isWizard(other), other);
         }
         assertFalse(CallbackData.isWizard(null));
