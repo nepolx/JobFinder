@@ -28,6 +28,9 @@ class SessionJsonTest {
         s.getDraft().setExperience(Experience.Y1_3);
         s.getDraft().setScheduleCode("full");
         s.getDraft().setKeywords("Spring, SQL");
+        s.trackMessage(11);
+        s.trackMessage(12);
+        s.trackMessage(11);
 
         String json = mapper.writeValueAsString(s);
         Session back = mapper.readValue(json, Session.class);
@@ -36,6 +39,7 @@ class SessionJsonTest {
         assertEquals(5L, back.getEditingSubscriptionId());
         assertEquals(321, back.getPromptMessageId());
         assertEquals(s.getDraft().toCriteria(), back.getDraft().toCriteria());
+        assertEquals(java.util.List.of(11, 12), back.getWizardMessageIds());
         assertFalse(back.getDraft().isEmpty());
     }
 

@@ -119,11 +119,20 @@ public final class Keyboards {
         return rows(List.of(statuses));
     }
 
-    /** Кнопки уведомления о новой вакансии: [В избранное] [Отписаться]. */
+    /** Кнопки уведомления о новой вакансии: [👎 Не интересно] [👍 В избранное] и [Отписаться]. */
     public static InlineKeyboardMarkup newVacancy(String vacancyId, long subscriptionId) {
-        return rows(List.of(row(
-                button("В избранное", CallbackData.with(CallbackData.FAV_ADD, vacancyId)),
-                button("Отписаться", CallbackData.with(CallbackData.SUB_DEL, subscriptionId)))));
+        return rows(List.of(
+                row(button("👎 Не интересно", CallbackData.with(CallbackData.VAC_SKIP, vacancyId)),
+                        button("👍 В избранное", CallbackData.with(CallbackData.FAV_ADD, vacancyId))),
+                row(button("Отписаться", CallbackData.with(CallbackData.SUB_DEL, subscriptionId)))));
+    }
+
+    /** Карточка подборки: [👎 Пропустить] [👍 В избранное] и [⏹ Закончить]. */
+    public static InlineKeyboardMarkup feedCard(String vacancyId) {
+        return rows(List.of(
+                row(button("👎 Пропустить", CallbackData.with(CallbackData.FEED_SKIP, vacancyId)),
+                        button("👍 В избранное", CallbackData.with(CallbackData.FEED_LIKE, vacancyId))),
+                row(button("⏹ Закончить", CallbackData.FEED_STOP))));
     }
 
     /** Копия клавиатуры без кнопок, чей callback_data удовлетворяет условию; пустые строки удаляются. */

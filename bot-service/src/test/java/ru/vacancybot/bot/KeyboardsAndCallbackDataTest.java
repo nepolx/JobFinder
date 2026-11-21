@@ -48,6 +48,7 @@ class KeyboardsAndCallbackDataTest {
         all.add(Keyboards.favoriteCard(new Favorite(SampleVacancies.NEW_VACANCY, FavoriteStatus.SAVED)));
         all.add(Keyboards.favoriteStatuses(UUID.randomUUID().toString()));
         all.add(Keyboards.newVacancy(UUID.randomUUID().toString(), Long.MAX_VALUE));
+        all.add(Keyboards.feedCard(UUID.randomUUID().toString()));
 
         for (InlineKeyboardMarkup m : all) {
             for (String data : callbacks(m)) {
@@ -80,8 +81,9 @@ class KeyboardsAndCallbackDataTest {
     void without_removesMatchingButtonsAndEmptyRows() {
         var markup = Keyboards.newVacancy(UUID.randomUUID().toString(), 5);
         var onlyFav = Keyboards.without(markup, d -> d.startsWith("sub_"));
-        assertEquals(1, callbacks(onlyFav).size());
-        assertTrue(callbacks(onlyFav).get(0).startsWith("fav_add_"));
+        assertEquals(2, callbacks(onlyFav).size());
+        assertTrue(callbacks(onlyFav).get(0).startsWith("vac_skip_"));
+        assertTrue(callbacks(onlyFav).get(1).startsWith("fav_add_"));
 
         assertTrue(Keyboards.without(markup, d -> true).isEmpty());
         assertTrue(Keyboards.without(null, d -> true).isEmpty());
@@ -97,7 +99,7 @@ class KeyboardsAndCallbackDataTest {
                 "sub_exp_none", "sub_sch_full", "sub_emp_temp")) {
             assertTrue(CallbackData.isWizard(wizard), wizard);
         }
-        for (String other : List.of("sub_del_1", "sub_pause_1", "sub_resume_1", "sub_edit_1", "fav_add_x", "")) {
+        for (String other : List.of("sub_del_1", "sub_pause_1", "sub_resume_1", "sub_edit_1", "fav_add_x", "vac_skip_x", "feed_stop", "")) {
             assertFalse(CallbackData.isWizard(other), other);
         }
         assertFalse(CallbackData.isWizard(null));

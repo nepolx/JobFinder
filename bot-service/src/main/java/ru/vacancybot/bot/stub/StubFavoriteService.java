@@ -53,11 +53,10 @@ public class StubFavoriteService implements FavoriteService {
     }
 
     private static Vacancy vacancyOrPlaceholder(String id) {
-        if (id.equals(SampleVacancies.NEW_VACANCY.id())) {
-            return SampleVacancies.NEW_VACANCY;
-        }
-        if (id.equals(SampleVacancies.CHANGED_VACANCY.id())) {
-            return SampleVacancies.CHANGED_VACANCY;
+        for (Vacancy sample : SampleVacancies.FEED) {
+            if (sample.id().equals(id)) {
+                return sample;
+            }
         }
         return new Vacancy(id, "Вакансия (данные придут от сервиса)", "—", "—", null, null, null,
                 "https://trudvsem.ru/");

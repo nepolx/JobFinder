@@ -25,10 +25,24 @@ public final class CallbackData {
     public static final String FAV_ADD = "fav_add_";
     public static final String FAV_DEL = "fav_del_";
     public static final String FAV_NOTE = "fav_note_";
+    /** 👎 под уведомлением о вакансии: «не интересно», сообщение убирается. */
+    public static final String VAC_SKIP = "vac_skip_";
+
+    // подборка (режим «как в Tinder»)
+    public static final String FEED_LIKE = "feed_like_";
+    public static final String FEED_SKIP = "feed_skip_";
+    public static final String FEED_STOP = "feed_stop";
     /** fav_st_{statusCode}_{vacancyId}; код статуса без «_», поэтому делим по первому «_». */
     public static final String FAV_STATUS = "fav_st_";
 
+    /** vacancyId в common — String (в БД uuid): буквы, цифры, «-» и «_», чтобы callback_data уложился в 64 байта. */
+    private static final java.util.regex.Pattern VACANCY_ID = java.util.regex.Pattern.compile("[A-Za-z0-9_-]{1,40}");
+
     private CallbackData() {
+    }
+
+    public static boolean isVacancyId(String raw) {
+        return raw != null && VACANCY_ID.matcher(raw).matches();
     }
 
     public static String with(String prefix, Object arg) {

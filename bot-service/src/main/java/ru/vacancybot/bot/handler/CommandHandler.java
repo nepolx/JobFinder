@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 import ru.vacancybot.bot.fsm.Session;
 import ru.vacancybot.bot.port.UserService;
 import ru.vacancybot.bot.telegram.TelegramClient;
+import ru.vacancybot.bot.view.MenuButtons;
 import ru.vacancybot.bot.view.MessageFormatter;
 
 import java.util.Locale;
@@ -18,15 +19,17 @@ public class CommandHandler {
     private final WizardHandler wizard;
     private final SubscriptionHandler subscriptions;
     private final FavoriteHandler favorites;
+    private final FeedHandler feed;
 
     public CommandHandler(TelegramClient tg, UserService users, MessageFormatter fmt, WizardHandler wizard,
-                          SubscriptionHandler subscriptions, FavoriteHandler favorites) {
+                          SubscriptionHandler subscriptions, FavoriteHandler favorites, FeedHandler feed) {
         this.tg = tg;
         this.users = users;
         this.fmt = fmt;
         this.wizard = wizard;
         this.subscriptions = subscriptions;
         this.favorites = favorites;
+        this.feed = feed;
     }
 
     /** «/Start@MyBot payload» → «/start». */
@@ -39,15 +42,17 @@ public class CommandHandler {
         return first.toLowerCase(Locale.ROOT);
     }
 
-    public void handle(long chatId, long userId, String command, Session s) {
+    /** messageId — сообщение пользователя с командой (для /subscribe оно удаляется вместе с остальными сообщениями мастера). */
+    public void handle(long chatId, long userId, String command, int messageId, Session s) {
         wizard.abort(chatId, s); // любая команда прерывает незавершённый мастер
         switch (command) {
             case "/start" -> {
                 users.register(userId);
-                tg.sendMessage(chatId, fmt.welcome(), null);
+                tg.sendMessage(chatId, fmt.welcome(), MenuButtons.markup());
             }
-            case "/help" -> tg.sendMessage(chatId, fmt.help(), null);
-            case "/subscribe" -> wizard.start(chatId, s, null);
+            case "/help" -> tg.sendMessage(chatId, fmt.help(), MenuButtons.markup());
+            case "/browse" -> feed.start(chatId, userId);
+            case "/subscribe" -> wizard.start(chatId, s, null, null, messageId);
             case "/subscriptions" -> subscriptions.showList(chatId, userId);
             case "/favorites" -> favorites.showList(chatId, userId);
             default -> tg.sendMessage(chatId, MessageFormatter.UNKNOWN_COMMAND, null);

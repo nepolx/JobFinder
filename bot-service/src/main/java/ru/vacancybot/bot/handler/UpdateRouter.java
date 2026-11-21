@@ -10,6 +10,7 @@ import ru.vacancybot.bot.telegram.dto.CallbackQuery;
 import ru.vacancybot.bot.telegram.dto.Message;
 import ru.vacancybot.bot.telegram.dto.Update;
 import ru.vacancybot.bot.view.CallbackData;
+import ru.vacancybot.bot.view.MenuButtons;
 import ru.vacancybot.bot.view.MessageFormatter;
 
 /**
@@ -28,16 +29,18 @@ public class UpdateRouter {
     private final WizardHandler wizard;
     private final SubscriptionHandler subscriptions;
     private final FavoriteHandler favorites;
+    private final FeedHandler feed;
     private final Object[] locks = new Object[LOCKS];
 
     public UpdateRouter(TelegramClient tg, SessionStore sessions, CommandHandler commands, WizardHandler wizard,
-                        SubscriptionHandler subscriptions, FavoriteHandler favorites) {
+                        SubscriptionHandler subscriptions, FavoriteHandler favorites, FeedHandler feed) {
         this.tg = tg;
         this.sessions = sessions;
         this.commands = commands;
         this.wizard = wizard;
         this.subscriptions = subscriptions;
         this.favorites = favorites;
+        this.feed = feed;
         for (int i = 0; i < LOCKS; i++) {
             locks[i] = new Object();
         }
@@ -69,10 +72,13 @@ public class UpdateRouter {
             Session s = sessions.load(userId);
             try {
                 String text = m.text();
-                if (text.startsWith("/")) {
-                    commands.handle(chatId, userId, CommandHandler.commandOf(text), s);
+                String menuCommand = MenuButtons.commandFor(text); // кнопки меню под полем ввода = команды
+                if (menuCommand != null) {
+                    commands.handle(chatId, userId, menuCommand, m.messageId(), s);
+                } else if (text.startsWith("/")) {
+                    commands.handle(chatId, userId, CommandHandler.commandOf(text), m.messageId(), s);
                 } else {
-                    wizard.onText(chatId, text, s);
+                    wizard.onText(chatId, m.messageId(), text, s);
                 }
             } catch (RuntimeException e) {
                 log.error("Failed to handle message update {}", updateId, e);
@@ -113,8 +119,10 @@ public class UpdateRouter {
             wizard.onCallback(cb, s);
         } else if (d.startsWith("sub_")) {
             subscriptions.onCallback(cb, s);
-        } else if (d.startsWith("fav_")) {
+        } else if (d.startsWith("fav_") || d.startsWith("vac_")) {
             favorites.onCallback(cb);
+        } else if (d.startsWith("feed_")) {
+            feed.onCallback(cb);
         } else {
             tg.answerCallbackQuery(cb.queryId(), null);
         }

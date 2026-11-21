@@ -45,21 +45,50 @@ public class WizardHandler {
 
     /** Шаг 1. editingSubscriptionId != null — мастер редактирует существующую подписку. */
     public void start(long chatId, Session s, Long editingSubscriptionId) {
+        start(chatId, s, editingSubscriptionId, null, null);
+    }
+
+    /**
+     * Старт с вступлением (для редактирования) и сообщением пользователя, запустившим мастер:
+     * оба тоже будут удалены, когда мастер закончится.
+     */
+    public void start(long chatId, Session s, Long editingSubscriptionId, String intro, Integer triggerMessageId) {
         abort(chatId, s);
         s.setEditingSubscriptionId(editingSubscriptionId);
         s.setState(DialogState.SEARCH_TITLE);
+        if (triggerMessageId != null) {
+            s.trackMessage(triggerMessageId);
+        }
+        if (intro != null) {
+            s.trackMessage(tg.sendMessage(chatId, intro, null));
+        }
         ask(chatId, s, null);
     }
 
-    /** Прерывает мастер: убирает кнопки у последнего вопроса и сбрасывает контекст. */
+    /** Прерывает мастер: убирает кнопки у последнего вопроса, удаляет сообщения мастера и сбрасывает контекст. */
     public void abort(long chatId, Session s) {
         dropPromptKeyboard(chatId, s);
+        finish(chatId, s);
+    }
+
+    /** Удаляет вопросы бота и ответы пользователя, чтобы они не висели в чате, и сбрасывает контекст. */
+    private void finish(long chatId, Session s) {
+        for (Integer id : s.getWizardMessageIds()) {
+            try {
+                tg.deleteMessage(chatId, id);
+            } catch (RuntimeException e) {
+                log.debug("Could not delete message {}: {}", id, e.getMessage()); // уже удалено или старше 48 часов
+            }
+        }
         s.reset();
     }
 
     // ---------- текстовый ввод ----------
 
-    public void onText(long chatId, String text, Session s) {
+    public void onText(long chatId, int messageId, String text, Session s) {
+        if (s.getState() != DialogState.IDLE) {
+            s.trackMessage(messageId); // ответ пользователя тоже уберём по окончании мастера
+        }
         switch (s.getState()) {
             case IDLE -> tg.sendMessage(chatId, MessageFormatter.UNKNOWN_INPUT, null);
             case SEARCH_TITLE -> {
@@ -195,8 +224,7 @@ public class WizardHandler {
             subscriptions.update(cb.userId(), editingId, criteria);
         }
         tg.answerCallbackQuery(cb.queryId(), editingId == null ? "Подписка создана" : "Подписка обновлена");
-        removeKeyboard(cb.chatId(), cb.messageId());
-        s.reset();
+        finish(cb.chatId(), s);
         tg.sendMessage(cb.chatId(),
                 editingId == null ? MessageFormatter.SUBSCRIPTION_CREATED : MessageFormatter.SUBSCRIPTION_UPDATED, null);
     }
@@ -207,8 +235,7 @@ public class WizardHandler {
             return;
         }
         tg.answerCallbackQuery(cb.queryId(), "Создание подписки отменено");
-        removeKeyboard(cb.chatId(), cb.messageId());
-        s.reset();
+        finish(cb.chatId(), s);
         tg.sendMessage(cb.chatId(), MessageFormatter.SUBSCRIPTION_CANCELLED, null);
     }
 
@@ -218,7 +245,7 @@ public class WizardHandler {
     private void advance(long chatId, Session s) {
         s.setState(s.getState().next());
         if (s.getState() == DialogState.CONFIRM_SUBSCRIPTION && s.getDraft().isEmpty()) {
-            tg.sendMessage(chatId, MessageFormatter.NEED_ONE_PARAM, null);
+            s.trackMessage(tg.sendMessage(chatId, MessageFormatter.NEED_ONE_PARAM, null));
             s.clearDraft();
             s.setState(DialogState.SEARCH_TITLE);
         }
@@ -234,6 +261,7 @@ public class WizardHandler {
         String text = hint == null ? body : hint + "\n\n" + body;
         int messageId = tg.sendMessage(chatId, text, Keyboards.forState(s.getState(), regions.popular()));
         s.setPromptMessageId(messageId);
+        s.trackMessage(messageId);
     }
 
     private String regionName(String code) {
