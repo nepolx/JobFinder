@@ -19,13 +19,15 @@ worker:
     base-url: http://opendata.trudvsem.ru
     page-size: 100
     connect-timeout: 5s
-    read-timeout: 10s
+    read-timeout: 60s
   sync:
-    window-size: 1h
+    window-size: 3h
+    max-window-records: 10000
+    page-concurrency: 3
     max-reload-attempts: 2
     max-retries: 3
     retry-base-delay: 1s
-    pause-between-requests: 100ms
+    pause-between-requests: 200ms
   db-service:
     base-url: http://localhost:8081
     connect-timeout: 2s
@@ -38,8 +40,9 @@ worker:
     overlap: 2h
     initial-lookback: 24h
     enabled: true
-    interval-ms: 300000
+    interval-ms: 900000
     initial-delay-ms: 30000
+    max-catch-up: 48h
 
 management:
   endpoints:
