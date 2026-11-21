@@ -11,8 +11,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Inte
     // все подписки пользователя
     List<Subscription> findByUserId(Integer userId);
 
-    // подписка по id, но только если она принадлежит этому пользователю
-    // (так один пользователь не сможет изменить или удалить чужую подписку)
     Optional<Subscription> findByIdAndUserId(Integer id, Integer userId);
 
     long countByUserId(Integer userId);

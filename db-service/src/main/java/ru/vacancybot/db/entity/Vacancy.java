@@ -8,13 +8,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Вакансия с портала trudvsem.ru. Таблица vacancies.
- *
- * id приходит из API (не генерируется базой).
- * Колонка search_vector (tsvector) генерируется базой из job_name, duty и requirements,
- * поэтому в сущность намеренно НЕ добавлена. Поиск по ней пишем нативным SQL.
- */
+
 @Entity
 @Table(name = "vacancies")
 public class Vacancy {

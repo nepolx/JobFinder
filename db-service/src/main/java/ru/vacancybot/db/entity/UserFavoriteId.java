@@ -4,11 +4,6 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Составной первичный ключ избранного: (user_id, vacancy_id).
- * Используется как @IdClass в UserFavorite. Имена полей должны совпадать
- * с именами @Id-полей в UserFavorite.
- */
 public class UserFavoriteId implements Serializable {
 
     private Integer userId;
