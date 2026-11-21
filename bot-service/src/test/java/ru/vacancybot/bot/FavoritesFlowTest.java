@@ -20,7 +20,7 @@ class FavoritesFlowTest {
     void notificationHasFavoriteAndUnsubscribeButtons() {
         Harness h = new Harness();
         h.sender.sendNewVacancy(Harness.UID, V, 7);
-        assertEquals(List.of("fav_add_" + ID, "sub_del_7"), h.tg.last().callbacks());
+        assertEquals(List.of("vac_skip_" + ID, "fav_add_" + ID, "sub_del_7"), h.tg.last().callbacks());
     }
 
     @Test
@@ -45,7 +45,7 @@ class FavoritesFlowTest {
         h.press("sub_del_7");
 
         assertEquals("Подписка удалена", h.tg.lastAnswer());
-        assertEquals(List.of("fav_add_" + ID), h.tg.last().callbacks());
+        assertEquals(List.of("vac_skip_" + ID, "fav_add_" + ID), h.tg.last().callbacks());
         assertEquals(text, h.lastText());
     }
 
@@ -149,6 +149,37 @@ class FavoritesFlowTest {
         h.press("fav_add_" + ID);
 
         assertEquals("Эта вакансия уже недоступна", h.tg.lastAnswer());
-        assertEquals(List.of("fav_add_" + ID, "sub_del_7"), msg.callbacks());
+        assertEquals(List.of("vac_skip_" + ID, "fav_add_" + ID, "sub_del_7"), msg.callbacks());
+    }
+
+    @Test
+    void dislikeUnderNotification_deletesTheMessage() {
+        Harness h = new Harness();
+        h.sender.sendNewVacancy(Harness.UID, V, 7);
+        var msg = h.tg.last();
+
+        h.press("vac_skip_" + ID);
+
+        assertTrue(h.tg.deleted.contains(msg.id));
+        assertTrue(h.favs.list(Harness.UID).isEmpty());
+    }
+
+    @Test
+    void dislikeThatCannotDelete_fallsBackToRemovingSwipeButtons() {
+        Harness h = new Harness();
+        h.tg.failDeletes = true;
+        h.sender.sendNewVacancy(Harness.UID, V, 7);
+
+        h.press("vac_skip_" + ID);
+
+        assertEquals(List.of("sub_del_7"), h.tg.last().callbacks());
+    }
+
+    @Test
+    void likeRemovesBothSwipeButtons_keepsUnsubscribe() {
+        Harness h = new Harness();
+        h.sender.sendNewVacancy(Harness.UID, V, 7);
+        h.press("fav_add_" + ID);
+        assertEquals(List.of("sub_del_7"), h.tg.last().callbacks());
     }
 }

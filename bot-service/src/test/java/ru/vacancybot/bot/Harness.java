@@ -3,6 +3,7 @@ package ru.vacancybot.bot;
 import ru.vacancybot.bot.fsm.InMemorySessionStore;
 import ru.vacancybot.bot.handler.CommandHandler;
 import ru.vacancybot.bot.handler.FavoriteHandler;
+import ru.vacancybot.bot.handler.FeedHandler;
 import ru.vacancybot.bot.handler.SubscriptionHandler;
 import ru.vacancybot.bot.handler.UpdateRouter;
 import ru.vacancybot.bot.handler.WizardHandler;
@@ -11,6 +12,8 @@ import ru.vacancybot.bot.stub.StubFavoriteService;
 import ru.vacancybot.bot.stub.StubRegionClassifier;
 import ru.vacancybot.bot.stub.StubSubscriptionService;
 import ru.vacancybot.bot.stub.StubUserService;
+import ru.vacancybot.bot.stub.StubVacancyFeedService;
+import ru.vacancybot.bot.port.VacancyFeedService;
 import ru.vacancybot.bot.telegram.dto.CallbackQuery;
 import ru.vacancybot.bot.telegram.dto.Chat;
 import ru.vacancybot.bot.telegram.dto.Message;
@@ -33,6 +36,8 @@ public class Harness {
     public final MessageFormatter fmt = new MessageFormatter("@jobfinder_support");
     public final NotificationSender sender = new NotificationSender(tg, fmt);
     public final UpdateRouter router;
+    public final VacancyFeedService feed;
+    public final java.util.List<Integer> userMessageIds = new java.util.ArrayList<>();
     private long seq = 0;
 
     public Harness() {
@@ -44,19 +49,27 @@ public class Harness {
     }
 
     public Harness(StubSubscriptionService subs, StubFavoriteService favs) {
+        this(subs, favs, new StubVacancyFeedService());
+    }
+
+    public Harness(StubSubscriptionService subs, StubFavoriteService favs, VacancyFeedService feed) {
         this.subs = subs;
         this.favs = favs;
+        this.feed = feed;
         WizardHandler wizard = new WizardHandler(tg, subs, regions, fmt);
         SubscriptionHandler subscriptionHandler = new SubscriptionHandler(tg, subs, regions, fmt, wizard);
         FavoriteHandler favoriteHandler = new FavoriteHandler(tg, favs, fmt);
-        CommandHandler commands = new CommandHandler(tg, users, fmt, wizard, subscriptionHandler, favoriteHandler);
-        this.router = new UpdateRouter(tg, new InMemorySessionStore(), commands, wizard, subscriptionHandler, favoriteHandler);
+        FeedHandler feedHandler = new FeedHandler(tg, feed, favs, fmt);
+        CommandHandler commands = new CommandHandler(tg, users, fmt, wizard, subscriptionHandler, favoriteHandler, feedHandler);
+        this.router = new UpdateRouter(tg, new InMemorySessionStore(), commands, wizard, subscriptionHandler, favoriteHandler, feedHandler);
     }
 
     /** Пользователь пишет сообщение в личку. */
     public void say(String text) {
-        router.handle(new Update(++seq,
-                new Message(1, new User(UID, false), new Chat(UID, "private"), text, null), null));
+        int messageId = (int) (10_000 + (++seq));
+        userMessageIds.add(messageId);
+        router.handle(new Update(seq,
+                new Message(messageId, new User(UID, false), new Chat(UID, "private"), text, null), null));
     }
 
     /** Пользователь нажимает кнопку на самом свежем сообщении, где она есть. */

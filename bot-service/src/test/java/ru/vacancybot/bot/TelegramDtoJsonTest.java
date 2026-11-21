@@ -63,4 +63,12 @@ class TelegramDtoJsonTest {
         assertTrue(json.contains("\"callback_data\":\"sub_skip\""));
         assertEquals("{\"inline_keyboard\":[]}", mapper.writeValueAsString(InlineKeyboardMarkup.empty()));
     }
+
+    @Test
+    void serializesPersistentReplyKeyboard() throws Exception {
+        String json = mapper.writeValueAsString(ru.vacancybot.bot.view.MenuButtons.markup());
+        assertTrue(json.contains("\"resize_keyboard\":true"));
+        assertTrue(json.contains("\"is_persistent\":true"));
+        assertTrue(json.contains("\"text\":\"🔥 Подборка\""));
+    }
 }

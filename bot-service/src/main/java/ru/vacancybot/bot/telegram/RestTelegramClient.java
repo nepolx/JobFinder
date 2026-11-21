@@ -11,6 +11,7 @@ import org.springframework.web.client.RestClientResponseException;
 import ru.vacancybot.bot.config.BotProperties;
 import ru.vacancybot.bot.telegram.dto.BotCommand;
 import ru.vacancybot.bot.telegram.dto.InlineKeyboardMarkup;
+import ru.vacancybot.bot.telegram.dto.ReplyMarkup;
 
 import java.net.URI;
 import java.util.LinkedHashMap;
@@ -39,11 +40,12 @@ public class RestTelegramClient implements TelegramClient {
     }
 
     @Override
-    public int sendMessage(long chatId, String text, InlineKeyboardMarkup keyboard) {
+    public int sendMessage(long chatId, String text, ReplyMarkup keyboard) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("chat_id", chatId);
         body.put("text", text);
-        if (keyboard != null && !keyboard.isEmpty()) {
+        boolean emptyInline = keyboard instanceof InlineKeyboardMarkup inline && inline.isEmpty();
+        if (keyboard != null && !emptyInline) {
             body.put("reply_markup", keyboard);
         }
         return call("sendMessage", body).path("message_id").asInt();
@@ -66,6 +68,14 @@ public class RestTelegramClient implements TelegramClient {
         body.put("message_id", messageId);
         body.put("reply_markup", keyboard == null ? InlineKeyboardMarkup.empty() : keyboard);
         callIgnoringNotModified("editMessageReplyMarkup", body);
+    }
+
+    @Override
+    public void deleteMessage(long chatId, int messageId) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("chat_id", chatId);
+        body.put("message_id", messageId);
+        call("deleteMessage", body);
     }
 
     @Override

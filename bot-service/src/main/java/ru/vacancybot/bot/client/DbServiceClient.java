@@ -42,6 +42,20 @@ public class DbServiceClient {
         }
     }
 
+    /** Как {@link #call(String, String, Object, TypeReference)}, но 204 No Content даёт пустой Optional (404 остаётся ошибкой). */
+    public <T> Optional<T> callAllowNoContent(String method, String path, Object body, TypeReference<T> type) {
+        HttpResponse<String> response = execute(method, path, body);
+        if (response.statusCode() == 204) {
+            return Optional.empty();
+        }
+        ensureSuccess(response);
+        try {
+            return Optional.of(mapper.readValue(response.body(), type));
+        } catch (IOException e) {
+            throw new DbServiceException(response.statusCode(), "Unexpected db-service response for " + method + " " + path);
+        }
+    }
+
     /** Запрос, тело ответа не нужно. */
     public void call(String method, String path, Object body) {
         ensureSuccess(execute(method, path, body));

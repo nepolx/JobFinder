@@ -34,21 +34,48 @@ mvn -pl bot-service spring-boot:run
 
 ## Контракт кнопок для notifier-service
 
-Бот обрабатывает кнопки под уведомлениями, поэтому notifier должен выставлять именно такой `callback_data`:
+Бот обрабатывает кнопки под уведомлениями, поэтому notifier должен выставлять именно такой `callback_data`
+(раскладка как в «Tinder»: ряд из двух кнопок, ниже «Отписаться»):
 
-| Кнопка | callback_data |
-|---|---|
-| В избранное (новая вакансия) | `fav_add_{vacancyId}` |
-| Отписаться (новая вакансия) | `sub_del_{subscriptionId}` |
+| Кнопка | callback_data | Что делает бот |
+|---|---|---|
+| 👎 Не интересно | `vac_skip_{vacancyId}` | удаляет уведомление из чата |
+| 👍 В избранное | `fav_add_{vacancyId}` | кладёт в избранное, убирает 👍 и 👎 |
+| Отписаться | `sub_del_{subscriptionId}` | удаляет подписку |
 
 `vacancyId` — буквы, цифры, `-`, `_`, до 40 символов; весь `callback_data` не длиннее 64 байт.
+
+## Меню под полем ввода
+
+После `/start` (и `/help`) под полем ввода появляется постоянное меню: ➕ Новая подписка, 📋 Мои подписки,
+🔥 Подборка, ⭐ Избранное, ❓ Помощь. Нажатие работает как команда и прерывает незаконченный мастер.
+
+## Мастер подписки не засоряет чат
+
+Вопросы бота и ответы пользователя запоминаются в сессии и удаляются, когда мастер закончился
+(подтверждение, отмена, другая команда или перезапуск). В чате остаётся только итог. Если сервис упал при подтверждении,
+сообщения остаются, и можно нажать «Создать подписку» ещё раз.
+
+## Подборка (/browse): 👍 / 👎
+
+Карточки вакансий по одной: 👍 кладёт в избранное, 👎 пропускает, карточка заменяется следующей, «Закончить» останавливает.
+Оценённые вакансии не повторяются.
+
+Нужны два новых эндпоинта в db-service (в API.md их пока нет, **предложение на согласование**):
+
+| Метод | Путь | Ответ |
+|---|---|---|
+| GET | `/api/users/{telegramId}/feed/next` | `200` + `VacancyDto` следующей вакансии под активные подписки, которую пользователь ещё не оценивал; `204`, если показывать нечего |
+| POST | `/api/users/{telegramId}/feed/{vacancyId}/seen` | `204`; вакансия больше не показывается (вызывается и для 👍, и для 👎) |
+
+Пока эндпоинтов нет (`404`/`405`), бот отвечает «Подборка пока недоступна» и продолжает работать. С `BOT_STUBS_ENABLED=true` подборка идёт из примеров.
 
 ## Структура
 
 ```
-handler/   UpdateRouter → CommandHandler, WizardHandler (FSM), SubscriptionHandler, FavoriteHandler
+handler/   UpdateRouter → CommandHandler, WizardHandler (FSM), SubscriptionHandler, FavoriteHandler, FeedHandler
 fsm/       DialogState, Session, SessionStore (память / Redis), InputValidator
-view/      MessageFormatter (все тексты), Keyboards, CallbackData
+view/      MessageFormatter (все тексты), Keyboards, MenuButtons, CallbackData
 telegram/  TelegramClient, RestTelegramClient, WebhookRegistrar, dto/
 port/      контракты с db-service      stub/  заглушки
 ```

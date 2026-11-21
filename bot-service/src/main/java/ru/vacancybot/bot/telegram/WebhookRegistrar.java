@@ -32,6 +32,7 @@ public class WebhookRegistrar implements ApplicationRunner {
         }
         try {
             tg.setMyCommands(List.of(
+                    new BotCommand("browse", "Подборка вакансий: 👍 или 👎"),
                     new BotCommand("subscribe", "Создать подписку на вакансии"),
                     new BotCommand("subscriptions", "Мои подписки"),
                     new BotCommand("favorites", "Избранные вакансии"),

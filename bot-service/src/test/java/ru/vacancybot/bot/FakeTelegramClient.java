@@ -4,6 +4,8 @@ import ru.vacancybot.bot.telegram.TelegramClient;
 import ru.vacancybot.bot.telegram.dto.BotCommand;
 import ru.vacancybot.bot.telegram.dto.InlineKeyboardButton;
 import ru.vacancybot.bot.telegram.dto.InlineKeyboardMarkup;
+import ru.vacancybot.bot.telegram.dto.ReplyKeyboardMarkup;
+import ru.vacancybot.bot.telegram.dto.ReplyMarkup;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +18,7 @@ public class FakeTelegramClient implements TelegramClient {
         public final long chatId;
         public String text;
         public InlineKeyboardMarkup keyboard;
+        public ReplyKeyboardMarkup replyKeyboard;
 
         Msg(int id, long chatId, String text, InlineKeyboardMarkup keyboard) {
             this.id = id;
@@ -39,11 +42,14 @@ public class FakeTelegramClient implements TelegramClient {
 
     public final List<Msg> messages = new ArrayList<>();
     public final List<String> answers = new ArrayList<>();
+    public final java.util.Set<Integer> deleted = new java.util.HashSet<>();
+    public boolean failDeletes;
     private int nextId = 100;
 
     @Override
-    public int sendMessage(long chatId, String text, InlineKeyboardMarkup keyboard) {
-        Msg m = new Msg(nextId++, chatId, text, keyboard);
+    public int sendMessage(long chatId, String text, ReplyMarkup keyboard) {
+        Msg m = new Msg(nextId++, chatId, text, keyboard instanceof InlineKeyboardMarkup i ? i : null);
+        m.replyKeyboard = keyboard instanceof ReplyKeyboardMarkup r ? r : null;
         messages.add(m);
         return m.id;
     }
@@ -58,6 +64,19 @@ public class FakeTelegramClient implements TelegramClient {
     @Override
     public void editMessageReplyMarkup(long chatId, int messageId, InlineKeyboardMarkup keyboard) {
         byId(messageId).keyboard = keyboard == null ? InlineKeyboardMarkup.empty() : keyboard;
+    }
+
+    @Override
+    public void deleteMessage(long chatId, int messageId) {
+        if (failDeletes) {
+            throw new IllegalStateException("message can't be deleted");
+        }
+        deleted.add(messageId);
+    }
+
+    /** Тексты сообщений, которые не удалены. */
+    public List<String> visibleTexts() {
+        return messages.stream().filter(m -> !deleted.contains(m.id)).map(m -> m.text).toList();
     }
 
     @Override

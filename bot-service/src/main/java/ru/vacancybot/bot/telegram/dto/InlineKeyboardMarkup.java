@@ -8,7 +8,7 @@ import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record InlineKeyboardMarkup(
-        @JsonProperty("inline_keyboard") List<List<InlineKeyboardButton>> inlineKeyboard) {
+        @JsonProperty("inline_keyboard") List<List<InlineKeyboardButton>> inlineKeyboard) implements ReplyMarkup {
 
     public static InlineKeyboardMarkup empty() {
         return new InlineKeyboardMarkup(List.of());

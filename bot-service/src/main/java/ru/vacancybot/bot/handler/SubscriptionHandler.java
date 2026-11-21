@@ -108,8 +108,7 @@ public class SubscriptionHandler {
             return;
         }
         tg.answerCallbackQuery(cb.queryId(), null);
-        tg.sendMessage(cb.chatId(), fmt.editingIntro(id), null);
-        wizard.start(cb.chatId(), session, id);
+        wizard.start(cb.chatId(), session, id, fmt.editingIntro(id), null);
     }
 
     private void notFound(CallbackCtx cb) {

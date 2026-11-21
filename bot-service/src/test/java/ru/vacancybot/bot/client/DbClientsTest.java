@@ -10,6 +10,7 @@ import ru.vacancybot.bot.domain.Favorite;
 import ru.vacancybot.bot.domain.FavoriteStatus;
 import ru.vacancybot.bot.domain.Subscription;
 import ru.vacancybot.bot.domain.SubscriptionCriteria;
+import ru.vacancybot.bot.port.FeedUnavailableException;
 
 import java.io.IOException;
 import java.util.List;
@@ -271,5 +272,38 @@ class DbClientsTest {
         server.handler = r -> FakeDbServer.Resp.status(204);
         favs.remove(TG, "a b/c");
         assertEquals("/api/users/42/favorites/a%20b%2Fc", server.last().target());
+    }
+
+    // ---------- подборка (предложенные эндпоинты) ----------
+
+    @Test
+    void feedNext_parsesVacancy_204MeansNothingToShow() {
+        var feed = new HttpVacancyFeedService(db);
+        server.handler = r -> FakeDbServer.Resp.ok(vacJson(V1, "Из подборки"));
+
+        var vacancy = feed.next(TG).orElseThrow();
+
+        assertEquals("GET", server.last().method());
+        assertEquals("/api/users/42/feed/next", server.last().target());
+        assertEquals("Из подборки", vacancy.jobName());
+
+        server.handler = r -> FakeDbServer.Resp.status(204);
+        assertTrue(feed.next(TG).isEmpty());
+    }
+
+    @Test
+    void feedMarkSeen_posts_andMissingEndpointMeansUnavailable() {
+        var feed = new HttpVacancyFeedService(db);
+        server.handler = r -> FakeDbServer.Resp.status(204);
+        feed.markSeen(TG, V1);
+        assertEquals("POST", server.last().method());
+        assertEquals("/api/users/42/feed/" + V1 + "/seen", server.last().target());
+
+        server.handler = r -> FakeDbServer.Resp.status(404);
+        assertThrows(FeedUnavailableException.class, () -> feed.markSeen(TG, V1));
+        assertThrows(FeedUnavailableException.class, () -> feed.next(TG));
+
+        server.handler = r -> FakeDbServer.Resp.status(500);
+        assertThrows(DbServiceException.class, () -> feed.next(TG));
     }
 }

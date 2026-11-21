@@ -12,7 +12,6 @@ import ru.vacancybot.bot.view.MessageFormatter;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 /** /favorites и кнопки избранного: добавить, убрать, пометка («откликнулся», «жду ответа»). */
 @Component
@@ -20,8 +19,6 @@ public class FavoriteHandler {
 
     static final int MAX_CARDS = 10;
 
-    /** vacancyId в common — String (в БД это uuid); допускаем буквы, цифры, «-» и «_», чтобы влезть в 64 байта callback_data. */
-    private static final Pattern VACANCY_ID = Pattern.compile("[A-Za-z0-9_-]{1,40}");
 
     private final TelegramClient tg;
     private final FavoriteService favorites;
@@ -59,6 +56,11 @@ public class FavoriteHandler {
             if (id != null) {
                 remove(cb, id);
             }
+        } else if (d.startsWith(CallbackData.VAC_SKIP)) {
+            String id = parseVacancyId(cb, CallbackData.arg(d, CallbackData.VAC_SKIP));
+            if (id != null) {
+                skip(cb, id);
+            }
         } else if (d.startsWith(CallbackData.FAV_NOTE)) {
             String id = parseVacancyId(cb, CallbackData.arg(d, CallbackData.FAV_NOTE));
             if (id != null) {
@@ -82,7 +84,22 @@ public class FavoriteHandler {
         tg.answerCallbackQuery(cb.queryId(), "Добавлено в избранное");
         // Под уведомлением убираем только «В избранное», «Отписаться» остаётся.
         tg.editMessageReplyMarkup(cb.chatId(), cb.messageId(),
-                Keyboards.without(cb.markup(), data -> data.equals(CallbackData.FAV_ADD + id)));
+                Keyboards.without(cb.markup(), data -> swipeButtonOf(data, id)));
+    }
+
+    /** 👎 под уведомлением: убираем сообщение (если нельзя удалить, то хотя бы кнопки 👍/👎). */
+    private void skip(CallbackCtx cb, String id) {
+        tg.answerCallbackQuery(cb.queryId(), "Убрали");
+        try {
+            tg.deleteMessage(cb.chatId(), cb.messageId());
+        } catch (RuntimeException e) {
+            tg.editMessageReplyMarkup(cb.chatId(), cb.messageId(),
+                    Keyboards.without(cb.markup(), data -> swipeButtonOf(data, id)));
+        }
+    }
+
+    private static boolean swipeButtonOf(String data, String id) {
+        return data.equals(CallbackData.FAV_ADD + id) || data.equals(CallbackData.VAC_SKIP + id);
     }
 
     private void remove(CallbackCtx cb, String id) {
@@ -116,7 +133,7 @@ public class FavoriteHandler {
     }
 
     private String parseVacancyId(CallbackCtx cb, String raw) {
-        if (raw != null && VACANCY_ID.matcher(raw).matches()) {
+        if (CallbackData.isVacancyId(raw)) {
             return raw;
         }
         tg.answerCallbackQuery(cb.queryId(), "Некорректные данные");
