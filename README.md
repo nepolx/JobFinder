@@ -27,7 +27,6 @@ Worker отправляет вакансии в `db-service`, тот сравн�
 Нужны Docker Desktop, JDK 21, Maven, токен бота и ngrok.
 
 ```powershell
-cp .env.example .env                      # заполни токен бота и пароли
 mvn -pl common -am install -DskipTests
 ngrok http 8080                           # https-адрес + /webhook -> BOT_WEBHOOK_URL в .env
 docker compose up -d --build
