@@ -11,7 +11,9 @@ public record SyncProperties(
         @DefaultValue("2") int maxReloadAttempts,
         @DefaultValue("3") int maxRetries,
         @DefaultValue("1s") Duration retryBaseDelay,
-        @DefaultValue("100ms") Duration pauseBetweenRequests
+        @DefaultValue("100ms") Duration pauseBetweenRequests,
+        @DefaultValue("10000") int maxWindowRecords,
+        @DefaultValue("3") int pageConcurrency
 ) {
     public SyncProperties {
         if (windowSize.compareTo(Duration.ofSeconds(1)) < 0) {
@@ -19,6 +21,12 @@ public record SyncProperties(
         }
         if (maxReloadAttempts < 0 || maxRetries < 0) {
             throw new IllegalArgumentException("worker.sync retry counters must not be negative");
+        }
+        if (pageConcurrency < 1 || pageConcurrency > 8) {
+            throw new IllegalArgumentException("worker.sync.page-concurrency must be between 1 and 8");
+        }
+        if (maxWindowRecords < 1) {
+            throw new IllegalArgumentException("worker.sync.max-window-records must be positive");
         }
         if (retryBaseDelay.isNegative() || pauseBetweenRequests.isNegative()) {
             throw new IllegalArgumentException("worker.sync delays must not be negative");

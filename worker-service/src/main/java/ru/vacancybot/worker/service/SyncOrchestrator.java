@@ -64,19 +64,20 @@ public class SyncOrchestrator {
         this.clock = clock;
     }
 
-    public RunSummary run() {
+    public void run() {
         if (!running.compareAndSet(false, true)) {
             log.warn("Previous sync run is still in progress, skipping");
-            return new RunSummary(Status.ALREADY_RUNNING, 0, 0, 0, 0, 0, false, null);
+            new RunSummary(Status.ALREADY_RUNNING, 0, 0, 0, 0, 0, false, null);
+            return;
         }
         try {
-            return doRun();
+            doRun();
         } finally {
             running.set(false);
         }
     }
 
-    private RunSummary doRun() {
+    private void doRun() {
         Instant now = clock.instant();
         RunState state = new RunState();
 
@@ -94,7 +95,8 @@ public class SyncOrchestrator {
         Instant to = latest.map(value -> value.isAfter(now) ? now : value).orElse(null);
         if (to == null || !to.isAfter(state.cursor)) {
             log.info("No new data in API (cursor {}, latest {})", state.cursor, latest.orElse(null));
-            return summary(Status.IDLE, state);
+            summary(Status.IDLE, state);
+            return;
         }
 
         // 4. загрузка окнами
@@ -105,7 +107,6 @@ public class SyncOrchestrator {
         log.info("Sync completed: windows={}, fetched={}, skipped={}, changes={}, published={}, brokerFailed={}, cursor={}",
                 result.windows(), result.fetched(), result.skipped(), result.changes(),
                 result.published(), result.brokerFailed(), result.cursor());
-        return result;
     }
 
     private void handleWindow(RunState state, Instant windowTo, List<TrudvsemVacancyDto> vacancies) {
@@ -136,6 +137,17 @@ public class SyncOrchestrator {
     }
 
     private Instant readCursor(Instant now) {
+        Instant cursor = loadCursor(now);
+        Instant floor = now.minus(properties.maxCatchUp());
+        if (cursor.isBefore(floor)) {
+            log.warn("Cursor {} is older than max catch-up ({}): changes made before {} are skipped",
+                    cursor, properties.maxCatchUp(), floor);
+            return floor;
+        }
+        return cursor;
+    }
+
+    private Instant loadCursor(Instant now) {
         Optional<Instant> saved = dbClient.getCursor();
         if (saved.isPresent()) {
             return saved.get();

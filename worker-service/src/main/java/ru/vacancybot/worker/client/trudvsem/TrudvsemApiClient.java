@@ -21,28 +21,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-/**
- * Клиент открытого API trudvsem.ru.
- *
- * <p>Особенности API, проверенные экспериментально:
- * <ul>
- *   <li>параметр {@code offset} это номер страницы, нумерация с 0;</li>
- *   <li>страницы с номером {@code >= 100} дают HTTP 500, поэтому за один запрос
- *       можно прочитать не больше {@code 100 * limit} записей;</li>
- *   <li>{@code Z} в {@code modifiedFrom/modifiedTo} читается как UTC;</li>
- *   <li>обе границы окна включаются;</li>
- *   <li>записи отдаются от новых к старым.</li>
- * </ul>
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class TrudvsemApiClient {
 
-    /** Максимальный размер страницы, который принимает API. */
     public static final int MAX_LIMIT = 100;
 
-    /** Последняя доступная страница (нумерация с 0). */
     public static final int MAX_PAGE = 99;
 
     private static final int ERROR_BODY_LIMIT = 500;
@@ -50,17 +35,10 @@ public class TrudvsemApiClient {
     private final RestClient trudvsemRestClient;
     private final TrudvsemApiProperties properties;
 
-    /** Страница с размером из настроек. */
     public VacancyPage fetchPage(int page, Instant modifiedFrom, Instant modifiedTo) {
         return fetchPage(page, properties.pageSize(), modifiedFrom, modifiedTo);
     }
 
-    /**
-     * @param page         номер страницы (параметр {@code offset}), от 0 до {@link #MAX_PAGE}
-     * @param limit        размер страницы, от 1 до {@link #MAX_LIMIT}
-     * @param modifiedFrom нижняя граница окна (включительно), обязательна
-     * @param modifiedTo   верхняя граница окна (включительно); {@code null} означает «без верхней границы»
-     */
     public VacancyPage fetchPage(int page, int limit, Instant modifiedFrom, Instant modifiedTo) {
         if (page < 0 || page > MAX_PAGE) {
             throw new IllegalArgumentException(
@@ -115,15 +93,6 @@ public class TrudvsemApiClient {
         return toPage(response, page, limit);
     }
 
-    /**
-     * Самая новая запись с {@code modifiedFrom}: одним запросом с {@code limit=1}.
-     * Опирается на то, что API отдаёт записи от новых к старым.
-     *
-     * <p>Нужна, чтобы не фиксировать курсор «до сейчас», когда API отстаёт:
-     * верхняя граница последнего окна не должна быть новее этого значения.
-     *
-     * @return дата изменения самой новой записи или пусто, если с {@code modifiedFrom} ничего нет
-     */
     public Optional<Instant> findLatestModified(Instant modifiedFrom) {
         VacancyPage page = fetchPage(0, 1, modifiedFrom, null);
         if (page.isEmpty()) {
@@ -167,7 +136,6 @@ public class TrudvsemApiClient {
         return new VacancyPage(vacancies, total, page, limit);
     }
 
-    /** 5xx и 429 повторяем, остальные 4xx нет. */
     private static boolean isRetryableHttpStatus(int code) {
         return code >= 500 || code == 429;
     }
@@ -181,11 +149,6 @@ public class TrudvsemApiClient {
         }
     }
 
-    /**
-     * Одна страница выдачи.
-     *
-     * @param page номер страницы (значение параметра {@code offset}), с 0
-     */
     public record VacancyPage(List<TrudvsemVacancyDto> vacancies, int total, int page, int limit) {
 
         public boolean isEmpty() {
@@ -196,20 +159,14 @@ public class TrudvsemApiClient {
             return page + 1;
         }
 
-        /** Сколько страниц в окне по данным {@code meta.total}. */
         public int totalPages() {
             return (int) (((long) total + limit - 1) / limit);
         }
 
-        /** Есть ли ещё страница, которую можно прочитать (с учётом предела API в 100 страниц). */
         public boolean hasNext() {
             return nextPage() < totalPages() && nextPage() <= MAX_PAGE;
         }
 
-        /**
-         * {@code true}, если в окне больше записей, чем можно прочитать за один запрос.
-         * Окно нужно разбить на меньшие, иначе часть записей останется непрочитанной.
-         */
         public boolean exceedsReadableRange() {
             return totalPages() > MAX_PAGE + 1;
         }
