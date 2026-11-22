@@ -28,10 +28,6 @@ public final class CallbackData {
     /** 👎 под уведомлением о вакансии: «не интересно», сообщение убирается. */
     public static final String VAC_SKIP = "vac_skip_";
 
-    // подборка (режим «как в Tinder»)
-    public static final String FEED_LIKE = "feed_like_";
-    public static final String FEED_SKIP = "feed_skip_";
-    public static final String FEED_STOP = "feed_stop";
     /** fav_st_{statusCode}_{vacancyId}; код статуса без «_», поэтому делим по первому «_». */
     public static final String FAV_STATUS = "fav_st_";
 

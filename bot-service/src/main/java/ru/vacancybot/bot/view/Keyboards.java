@@ -127,13 +127,6 @@ public final class Keyboards {
                 row(button("Отписаться", CallbackData.with(CallbackData.SUB_DEL, subscriptionId)))));
     }
 
-    /** Карточка подборки: [👎 Пропустить] [👍 В избранное] и [⏹ Закончить]. */
-    public static InlineKeyboardMarkup feedCard(String vacancyId) {
-        return rows(List.of(
-                row(button("👎 Пропустить", CallbackData.with(CallbackData.FEED_SKIP, vacancyId)),
-                        button("👍 В избранное", CallbackData.with(CallbackData.FEED_LIKE, vacancyId))),
-                row(button("⏹ Закончить", CallbackData.FEED_STOP))));
-    }
 
     /** Копия клавиатуры без кнопок, чей callback_data удовлетворяет условию; пустые строки удаляются. */
     public static InlineKeyboardMarkup without(InlineKeyboardMarkup markup, Predicate<String> drop) {
