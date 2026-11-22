@@ -32,6 +32,7 @@ public class MessageFormatter {
     public static final String NO_FAVORITES = "В избранном пусто. Нажмите «В избранное» под вакансией в уведомлении.";
     public static final String SERVICE_ERROR = "Что-то пошло не так. Попробуйте ещё раз чуть позже.";
     public static final String SUBSCRIPTION_CARD_PREFIX = "Подписка №";
+    public static final String MENU_UPDATED = "Меню обновлено: кнопки «Подборка» больше нет, остальное работает как раньше.";
 
     private final String supportContact;
 
