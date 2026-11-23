@@ -23,9 +23,13 @@ public final class HttpTelegramSender implements TelegramSender {
     private final URI uri;
 
     public HttpTelegramSender(String token, HttpClient client, ObjectMapper mapper) {
+        this(token, client, mapper, "https://api.telegram.org");
+    }
+
+    public HttpTelegramSender(String token, HttpClient client, ObjectMapper mapper, String apiBaseUrl) {
         this.client = client;
         this.mapper = mapper;
-        this.uri = URI.create("https://api.telegram.org/bot" + token + "/sendMessage");
+        this.uri = URI.create(apiBaseUrl.replaceAll("/$", "") + "/bot" + token + "/sendMessage");
     }
 
     @Override

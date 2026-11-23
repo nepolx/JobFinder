@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 @ConfigurationProperties(prefix = "notifier")
 public record NotifierProperties(
         String telegramBotToken,
+        @DefaultValue("https://api.telegram.org") String telegramApiBaseUrl,
         @DefaultValue("vacancy.events") String eventsQueue,
         @DefaultValue("vacancy.events.retry") String retryQueue,
         @DefaultValue("60000") int retryDelayMs,          // через сколько сообщение вернётся из retry-очереди

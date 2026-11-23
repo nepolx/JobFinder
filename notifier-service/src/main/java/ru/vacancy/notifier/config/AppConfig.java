@@ -59,7 +59,7 @@ public class AppConfig {
 
     @Bean
     TelegramSender telegramSender(NotifierProperties p, ObjectMapper mapper) {
-        return new HttpTelegramSender(p.telegramBotToken(), HttpClient.newHttpClient(), mapper);
+        return new HttpTelegramSender(p.telegramBotToken(), HttpClient.newHttpClient(), mapper, p.telegramApiBaseUrl());
     }
 
     @Bean

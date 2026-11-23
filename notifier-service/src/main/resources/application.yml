@@ -25,6 +25,7 @@ spring:
 
 notifier:
   telegram-bot-token: ${TELEGRAM_BOT_TOKEN}
+  telegram-api-base-url: ${TELEGRAM_API_BASE_URL:https://api.telegram.org}
   events-queue: ${EVENTS_QUEUE:vacancy.events}
   retry-queue: ${RETRY_QUEUE:vacancy.events.retry}
   retry-delay-ms: ${RETRY_DELAY_MS:60000}
