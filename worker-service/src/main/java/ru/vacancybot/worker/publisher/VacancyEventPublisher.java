@@ -54,7 +54,6 @@ public class VacancyEventPublisher {
         List<Sent> sent = new ArrayList<>();
         String brokerError = null;
 
-        // 1. отправляем всё, не дожидаясь подтверждений по одному
         for (VacancyChangeDto change : changes) {
             ChangeKeyDto key = ChangeKeyDto.of(change);
 
@@ -79,7 +78,6 @@ public class VacancyEventPublisher {
             CorrelationData correlation = new CorrelationData(messageId);
 
             try {
-                // default exchange: routing key равен имени очереди
                 rabbitTemplate.send("", properties.queue(), message, correlation);
             } catch (AmqpException e) {
                 brokerError = "send failed: " + e.getMessage();
@@ -88,7 +86,6 @@ public class VacancyEventPublisher {
             sent.add(new Sent(key, correlation));
         }
 
-        // 2. ждём подтверждений; общий срок на пачку ограничен
         long deadline = System.nanoTime() + properties.confirmTimeout().toNanos();
         for (Sent item : sent) {
             String problem = awaitConfirm(item.correlation(), deadline);
@@ -109,7 +106,6 @@ public class VacancyEventPublisher {
             if (!confirm.isAck()) {
                 return "broker nack: " + confirm.getReason();
             }
-            // подтверждение приходит и для недоставляемых сообщений, но после возврата
             if (correlation.getReturned() != null) {
                 return "message is unroutable (does the queue '" + properties.queue() + "' exist?): "
                         + correlation.getReturned().getReplyText();

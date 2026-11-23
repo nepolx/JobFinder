@@ -1,5 +1,8 @@
 package ru.vacancybot.worker.exception;
 
+import lombok.Getter;
+
+@Getter
 public class DbServiceException extends RuntimeException {
 
     private final Integer httpStatus;
@@ -17,11 +20,4 @@ public class DbServiceException extends RuntimeException {
         this.retryable = retryable;
     }
 
-    public Integer getHttpStatus() {
-        return httpStatus;
-    }
-
-    public boolean isRetryable() {
-        return retryable;
-    }
 }

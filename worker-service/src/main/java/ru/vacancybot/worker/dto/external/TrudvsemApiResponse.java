@@ -17,7 +17,6 @@ public record TrudvsemApiResponse(
             String api
     ) {}
 
-    /** При ошибке API вместо total и limit приходит только error. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Meta(
             Integer total,
