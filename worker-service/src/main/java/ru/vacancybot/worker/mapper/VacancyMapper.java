@@ -82,7 +82,7 @@ public class VacancyMapper {
                 nonNegativeOrNull(source.salaryMax()),
                 schedule,
                 resolveScheduleCode(schedule),
-                null,   // тип занятости в ответе trudvsem.ru отсутствует
+                null,
                 nonNegativeOrNull(experience),
                 clean(source.duty()),
                 clean(source.requirements()),

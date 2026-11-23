@@ -23,7 +23,6 @@ public class SyncScheduler {
         try {
             orchestrator.run();
         } catch (RuntimeException e) {
-            // курсор остался на последнем успешно записанном окне: следующий запуск продолжит оттуда
             log.error("Sync run failed, will retry at the next scheduled run", e);
         }
     }

@@ -181,8 +181,6 @@ public class DbServiceClient {
         return response == null || response.updated() == null ? 0 : response.updated();
     }
 
-
-    /** Полная замена справочника регионов ({@code PUT /api/regions}). Пустой список не допускается. */
     public void replaceRegions(List<RegionDto> regions) {
         if (regions.isEmpty()) {
             throw new IllegalArgumentException("Regions list must not be empty: it would erase the dictionary");
@@ -197,7 +195,6 @@ public class DbServiceClient {
         });
     }
 
-
     private <T> T execute(String operation, Supplier<T> call) {
         for (int attempt = 0; ; attempt++) {
             DbServiceException failure;
@@ -206,11 +203,9 @@ public class DbServiceClient {
             } catch (DbServiceException e) {
                 failure = e;
             } catch (ResourceAccessException e) {
-                // таймаут чтения или соединения, обрыв сети
                 failure = new DbServiceException(
                         operation + ": db-service is unreachable or timed out", e, true);
             } catch (RestClientException e) {
-                // например, тело ответа не соответствует DTO: повтор не поможет
                 throw new DbServiceException(
                         operation + ": cannot process db-service response", e, false);
             }

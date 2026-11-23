@@ -36,13 +36,11 @@ public class OutboxPublisher {
 
             PublishOutcome outcome = publisher.publish(batch);
 
-            // сначала фиксируем то, что точно ушло в очередь
             if (!outcome.confirmed().isEmpty()) {
                 dbClient.markPublished(outcome.confirmed());
                 published += outcome.confirmed().size();
             }
             for (Map.Entry<ChangeKeyDto, String> entry : outcome.rejected().entrySet()) {
-                // ошибка в данных: учитываем попытку, чтобы битое событие не блокировало хвост
                 dbClient.markPublishFailed(entry.getKey(), entry.getValue());
                 rejected++;
             }
@@ -52,7 +50,6 @@ public class OutboxPublisher {
                         outcome.brokerError(), published);
                 return new DrainResult(published, rejected, true);
             }
-            // отклонённые остались бы в следующей выдаче и крутили бы цикл; вернёмся к ним в следующий раз
             if (!outcome.rejected().isEmpty() || batch.size() < properties.batchSize()) {
                 if (published > 0 || rejected > 0) {
                     log.info("Outbox drained: published {}, rejected {}", published, rejected);
