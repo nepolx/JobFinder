@@ -14,6 +14,9 @@ public final class MenuButtons {
     public static final String FAVORITES = "⭐ Избранное";
     public static final String HELP = "❓ Помощь";
 
+    /** Подписи кнопок из старых версий меню: у пользователей клавиатура остаётся на экране, пока бот не пришлёт новую. */
+    private static final java.util.Set<String> LEGACY_LABELS = java.util.Set.of("🔥 Подборка");
+
     private static final Map<String, String> COMMANDS = Map.of(
             SUBSCRIBE, "/subscribe",
             SUBSCRIPTIONS, "/subscriptions",
@@ -25,7 +28,11 @@ public final class MenuButtons {
 
     /** Команда для текста кнопки меню или null, если текст не из меню. */
     public static String commandFor(String text) {
-        return text == null ? null : COMMANDS.get(text.trim());
+        if (text == null) {
+            return null;
+        }
+        String label = text.trim();
+        return LEGACY_LABELS.contains(label) ? "/menu" : COMMANDS.get(label);
     }
 
     public static ReplyKeyboardMarkup markup() {

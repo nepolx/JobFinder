@@ -33,11 +33,25 @@ public final class HttpTelegramSender implements TelegramSender {
 
     @Override
     public void sendMessage(long chatId, String text) {
+        sendMessage(chatId, text, null);
+    }
+
+    /** Тело запроса sendMessage; вынесено отдельно, чтобы проверять его в тестах без сети. */
+    static Map<String, Object> payload(long chatId, String text, InlineKeyboard keyboard) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("chat_id", chatId);
         payload.put("text", text);
         payload.put("parse_mode", "HTML");
         payload.put("link_preview_options", Map.of("is_disabled", true));
+        if (keyboard != null) {
+            payload.put("reply_markup", keyboard.toPayload());
+        }
+        return payload;
+    }
+
+    @Override
+    public void sendMessage(long chatId, String text, InlineKeyboard keyboard) {
+        Map<String, Object> payload = payload(chatId, text, keyboard);
 
         String json;
         try {

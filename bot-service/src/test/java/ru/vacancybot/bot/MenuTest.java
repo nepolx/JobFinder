@@ -72,4 +72,27 @@ class MenuTest {
         assertNull(MenuButtons.commandFor("Избранное"));
         assertNull(MenuButtons.commandFor(null));
     }
+
+    @Test
+    void tappingAButtonFromTheOldMenu_refreshesTheKeyboardInsteadOfSayingIDontUnderstand() {
+        Harness h = new Harness();
+
+        h.say("🔥 Подборка");
+
+        assertEquals(ru.vacancybot.bot.view.MessageFormatter.MENU_UPDATED, h.lastText());
+        assertEquals(4, labels(h).size());
+        assertTrue(!labels(h).contains("🔥 Подборка"));
+    }
+
+    @Test
+    void oldMenuButtonInsideWizard_alsoInterruptsIt() {
+        Harness h = new Harness();
+        h.say(MenuButtons.SUBSCRIBE);
+        h.say("Java");
+
+        h.say("🔥 Подборка");
+
+        assertEquals(ru.vacancybot.bot.view.MessageFormatter.MENU_UPDATED, h.tg.visibleTexts().get(h.tg.visibleTexts().size() - 1));
+        assertEquals(1, h.tg.visibleTexts().size());
+    }
 }

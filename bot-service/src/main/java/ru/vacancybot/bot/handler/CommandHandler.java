@@ -49,6 +49,7 @@ public class CommandHandler {
                 tg.sendMessage(chatId, fmt.welcome(), MenuButtons.markup());
             }
             case "/help" -> tg.sendMessage(chatId, fmt.help(), MenuButtons.markup());
+            case "/menu" -> tg.sendMessage(chatId, MessageFormatter.MENU_UPDATED, MenuButtons.markup()); // тап по кнопке из старого меню
             case "/subscribe" -> wizard.start(chatId, s, null, null, messageId);
             case "/subscriptions" -> subscriptions.showList(chatId, userId);
             case "/favorites" -> favorites.showList(chatId, userId);

@@ -22,6 +22,7 @@ import ru.vacancy.notifier.model.Recipient;
 import ru.vacancy.notifier.model.Vacancy;
 import ru.vacancy.notifier.retry.RetryExecutor;
 import ru.vacancy.notifier.telegram.BotBlockedException;
+import ru.vacancy.notifier.telegram.InlineKeyboard;
 import ru.vacancy.notifier.telegram.PermanentException;
 import ru.vacancy.notifier.telegram.TelegramSender;
 import ru.vacancy.notifier.telegram.TemporaryException;
@@ -82,7 +83,12 @@ public final class NotificationService implements EventHandler {
                 try {
                     
                     boolean asNew = event.type() == ChangeType.UPDATED && !recipient.inFavorites();
-                    return deliver(recipient, asNew ? newVacancyText : eventText);
+                    // под «новой вакансией» показываем 👎 / 👍; под «изменилась» и «закрыта» кнопок нет
+                    // (вакансия уже в избранном)
+                    InlineKeyboard keyboard = event.type() == ChangeType.CREATED || asNew
+                            ? InlineKeyboard.newVacancyActions(vacancy.get().id())
+                            : null;
+                    return deliver(recipient, asNew ? newVacancyText : eventText, keyboard);
                 } finally {
                     semaphore.release();
                 }
@@ -148,11 +154,11 @@ public final class NotificationService implements EventHandler {
         return count;
     }
 
-    private Outcome deliver(Recipient recipient, String text) {
+    private Outcome deliver(Recipient recipient, String text, InlineKeyboard keyboard) {
         try {
             retry.run(() -> {
                 limiter.acquire(recipient.telegramId());
-                sender.sendMessage(recipient.telegramId(), text);
+                sender.sendMessage(recipient.telegramId(), text, keyboard);
             });
         } catch (BotBlockedException e) {
             repo.markBlocked(recipient);
