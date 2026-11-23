@@ -9,7 +9,7 @@ import ru.vacancy.notifier.model.ChangeEvent;
 import ru.vacancy.notifier.model.ChangeType;
 import ru.vacancy.notifier.model.Vacancy;
 
-/** Формирование текста уведомления (Telegram HTML, лимит 4096 символов). */
+
 public final class MessageFormatter {
 
     public static final int MAX_MESSAGE_LEN = 4096;
@@ -26,7 +26,7 @@ public final class MessageFormatter {
             "region_name", "Регион",
             "job_name", "Название");
     private static final Set<String> MONEY_FIELDS = Set.of("salary_min", "salary_max");
-    // Длинные тексты в сообщении не показываем, только факт изменения.
+    
     private static final Map<String, String> TEXT_FIELDS = Map.of(
             "duty", "обязанности",
             "requirements", "требования");
@@ -72,9 +72,9 @@ public final class MessageFormatter {
 
     private static String header(ChangeType type) {
         return switch (type) {
-            case CREATED -> "🆕 Новая вакансия по вашей подписке";
-            case UPDATED -> "✏️ Вакансия из избранного изменилась";
-            case CLOSED -> "🚫 Вакансия из избранного закрыта";
+            case CREATED -> "Новая вакансия по вашей подписке";
+            case UPDATED -> "Вакансия из избранного изменилась";
+            case CLOSED -> "Вакансия из избранного закрыта";
         };
     }
 
@@ -98,7 +98,7 @@ public final class MessageFormatter {
         if (max == null) {
             return "от " + formatMoney(min.longValue());
         }
-        return formatMoney(min.longValue()); // min == max
+        return formatMoney(min.longValue()); 
     }
 
     private static String groupThousands(long value) {
@@ -134,7 +134,7 @@ public final class MessageFormatter {
                 lines.add("• " + FIELD_LABELS.get(field) + ": "
                         + formatValue(field, pair.get(0)) + " → " + formatValue(field, pair.get(1)));
             }
-            // неизвестные поля молча пропускаем: их формат нам не обещан
+            
         }
         return lines;
     }
@@ -150,21 +150,21 @@ public final class MessageFormatter {
         return "<a href=\"" + escaped + "\">Открыть вакансию</a>";
     }
 
-    /** Экранирует текст для Telegram HTML; результат не длиннее {@code limit} символов. */
+    
     static String fit(String text, int limit) {
         String raw = text == null ? "" : text.strip();
         if (raw.length() > limit) {
             raw = cut(raw, limit - 1).stripTrailing() + "…";
         }
         String escaped = escape(raw, false);
-        while (escaped.length() > limit) { // экранирование (& -> &amp;) удлиняет строку
+        while (escaped.length() > limit) { 
             raw = cut(raw, Math.max(raw.length() - 2, 0)).stripTrailing() + "…";
             escaped = escape(raw, false);
         }
         return escaped;
     }
 
-    /** Обрезка до end символов, не разрывая суррогатную пару (эмодзи). */
+    
     private static String cut(String s, int end) {
         int e = Math.min(end, s.length());
         if (e > 0 && Character.isHighSurrogate(s.charAt(e - 1))) {

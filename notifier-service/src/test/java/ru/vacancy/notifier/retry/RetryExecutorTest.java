@@ -23,7 +23,7 @@ class RetryExecutorTest {
         return new RetryExecutor(maxAttempts, 1.0, 30.0, sleeps::add, d -> d);
     }
 
-    /** Действие, которое по очереди бросает errors, а потом выполняется успешно. */
+    
     Runnable flaky(RuntimeException... errors) {
         Queue<RuntimeException> queue = new LinkedList<>(List.of(errors));
         return () -> {
@@ -77,7 +77,7 @@ class RetryExecutorTest {
         }
         assertThrows(TemporaryException.class, () -> executor(3).run(flaky(errors)));
         assertEquals(3, calls);
-        assertEquals(2, sleeps.size());   // после последней попытки не спим
+        assertEquals(2, sleeps.size());   
     }
 
     @Test

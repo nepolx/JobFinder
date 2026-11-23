@@ -29,37 +29,31 @@ import ru.vacancy.notifier.util.Sleeper;
 
 @Configuration
 public class AppConfig {
-
-    // --- RabbitMQ: очереди объявляются при старте (RabbitAdmin) ---
-
     @Bean
     Queue eventsQueue(NotifierProperties p) {
         return QueueBuilder.durable(p.eventsQueue())
-                .deadLetterExchange("")                     // default exchange
-                .deadLetterRoutingKey(p.retryQueue())       // отклонённые уходят в retry
+                .deadLetterExchange("")                     
+                .deadLetterRoutingKey(p.retryQueue())       
                 .build();
     }
 
     @Bean
     Queue retryQueue(NotifierProperties p) {
         return QueueBuilder.durable(p.retryQueue())
-                .ttl(p.retryDelayMs())                      // полежать и вернуться
+                .ttl(p.retryDelayMs())                      
                 .deadLetterExchange("")
                 .deadLetterRoutingKey(p.eventsQueue())
                 .build();
     }
-
-    /** При остановке ждём до 30 с, пока дообработаются события, уже взятые из очереди. */
+    
     @Bean
     ContainerCustomizer<SimpleMessageListenerContainer> shutdownCustomizer() {
         return container -> container.setShutdownTimeout(30_000);
     }
 
-    // --- Логика ---
-
     @Bean
     TelegramSender telegramSender(NotifierProperties p, ObjectMapper mapper) {
-        return new HttpTelegramSender(p.telegramBotToken(), HttpClient.newHttpClient(), mapper);
+        return new HttpTelegramSender(p.telegramBotToken(), HttpClient.newHttpClient(), mapper, p.telegramApiBaseUrl());
     }
 
     @Bean
@@ -69,7 +63,6 @@ public class AppConfig {
                 new RedisRateLimiter(redis, p.globalRate(), p.globalBurst(), "rl", Sleeper.REAL));
     }
 
-    /** Виртуальные потоки: тысячи ожидающих лимита отправок не занимают системные потоки. */
     @Bean
     ExecutorService sendExecutor() {
         return Executors.newVirtualThreadPerTaskExecutor();
@@ -77,8 +70,8 @@ public class AppConfig {
 
     @Bean
     NotificationService notificationService(NotificationRepository repo, TelegramSender sender,
-                                            ChatRateLimiter limiter, ExecutorService sendExecutor,
-                                            NotifierProperties p) {
+            ChatRateLimiter limiter, ExecutorService sendExecutor,
+            NotifierProperties p) {
         return new NotificationService(repo, sender, limiter,
                 RetryExecutor.withDefaults(p.maxAttempts()), sendExecutor, p.sendConcurrency(),
                 p.notifySubscribersOnUpdate());
@@ -91,7 +84,7 @@ public class AppConfig {
 
     @Bean
     EventMessageProcessor eventMessageProcessor(EventParser parser, NotificationService service,
-                                                NotifierProperties p) {
+            NotifierProperties p) {
         return new EventMessageProcessor(parser, service, p.maxRedeliveries());
     }
 }

@@ -1,0 +1,52 @@
+services:
+  trudvsem-fixture:
+    build: ./integration-tests
+    ports: ["8090:8090"]
+
+  postgres:
+    container_name: null
+    ports: ["55432:5432"]
+
+  rabbitmq:
+    container_name: null
+    ports: ["5673:5672", "15673:15672"]
+
+  redis:
+    container_name: null
+    ports: ["6380:6379"]
+
+  db-service:
+    container_name: null
+    ports: ["18081:8081"]
+
+  worker-service:
+    container_name: null
+    environment:
+      WORKER_TRUDVSEM_BASEURL: http://trudvsem-fixture:8090
+      WORKER_RUN_INTERVALMS: 5000
+      WORKER_RUN_INITIALDELAYMS: 60000
+      WORKER_SYNC_PAUSEBETWEENREQUESTS: 0ms
+    depends_on:
+      trudvsem-fixture:
+        condition: service_started
+    ports: ["18082:8082"]
+
+  notifier-service:
+    container_name: null
+    environment:
+      TELEGRAM_API_BASE_URL: http://trudvsem-fixture:8090
+      GLOBAL_RATE: 100
+      GLOBAL_BURST: 100
+      PER_CHAT_RATE: 100
+
+  bot-service:
+    container_name: null
+    environment:
+      BOT_API_BASE_URL: http://trudvsem-fixture:8090
+      BOT_WEBHOOK_URL: http://localhost:18080/webhook
+      BOT_SESSION_STORE: memory
+      BOT_STUBS_ENABLED: "false"
+    ports: ["18080:8080"]
+
+volumes:
+  pgdata:

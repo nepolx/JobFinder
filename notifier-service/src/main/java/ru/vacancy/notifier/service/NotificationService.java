@@ -26,18 +26,6 @@ import ru.vacancy.notifier.telegram.PermanentException;
 import ru.vacancy.notifier.telegram.TelegramSender;
 import ru.vacancy.notifier.telegram.TemporaryException;
 
-/**
- * Событие -> получатели -> отправка -> журнал.
- *
- * <p>Кому и что отправляется:
- * <ul>
- *   <li>created: подходящие подписки, текст «новая вакансия»;</li>
- *   <li>updated: владельцы избранного получают «изменилась» (с diff); подписчики, которым о вакансии
- *       ещё ничего не отправляли, получают её как «новую» (если включено notifySubscribersOnUpdate);</li>
- *   <li>closed: владельцы избранного.</li>
- * </ul>
- * Одно и то же событие поэтому может уйти разным людям в разном виде.
- */
 public final class NotificationService implements EventHandler {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
@@ -53,8 +41,8 @@ public final class NotificationService implements EventHandler {
     private final boolean notifySubscribersOnUpdate;
 
     public NotificationService(NotificationRepository repo, TelegramSender sender, ChatRateLimiter limiter,
-                               RetryExecutor retry, ExecutorService executor, int concurrency,
-                               boolean notifySubscribersOnUpdate) {
+            RetryExecutor retry, ExecutorService executor, int concurrency,
+            boolean notifySubscribersOnUpdate) {
         this.repo = repo;
         this.sender = sender;
         this.limiter = limiter;
@@ -64,10 +52,6 @@ public final class NotificationService implements EventHandler {
         this.notifySubscribersOnUpdate = notifySubscribersOnUpdate;
     }
 
-    /**
-     * Идемпотентна: повторный вызов для того же события шлёт только тем, у кого запись
-     * в журнале ещё pending.
-     */
     @Override
     public HandleResult handle(ChangeEvent event) {
         Optional<Vacancy> vacancy = repo.findVacancy(event.vacancyId());
@@ -96,7 +80,7 @@ public final class NotificationService implements EventHandler {
             futures.add(executor.submit(() -> {
                 semaphore.acquire();
                 try {
-                    // изменение показываем «как изменилось» только тем, у кого вакансия в избранном
+                    
                     boolean asNew = event.type() == ChangeType.UPDATED && !recipient.inFavorites();
                     return deliver(recipient, asNew ? newVacancyText : eventText);
                 } finally {
@@ -128,8 +112,6 @@ public final class NotificationService implements EventHandler {
             }
         }
         if (failure != null) {
-            // Непредвиденная ошибка (например, БД): уже отправленные помечены,
-            // остальные подхватит повторная обработка сообщения.
             if (failure instanceof RuntimeException re) {
                 throw re;
             }
@@ -169,7 +151,6 @@ public final class NotificationService implements EventHandler {
     private Outcome deliver(Recipient recipient, String text) {
         try {
             retry.run(() -> {
-                // Лимит берём перед КАЖДОЙ попыткой, включая повторы.
                 limiter.acquire(recipient.telegramId());
                 sender.sendMessage(recipient.telegramId(), text);
             });

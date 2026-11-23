@@ -11,16 +11,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/**
- * Событие от Poller. Контракт (JSON):
- * <pre>
- * {"change_id": 123, "vacancy_id": "&lt;uuid&gt;", "type": "created|updated|closed",
- *  "changed_at": "2026-11-08T12:00:00Z", "diff": {"salary_min": [50000, 70000]}}
- * </pre>
- * {@code change_id + changed_at} вместе идентифицируют изменение (ключ партиционированного
- * журнала notification_log), поэтому {@code changed_at} обязателен и должен совпадать с
- * записью в истории изменений. Время обязано содержать часовой пояс (Z или +03:00).
- */
 public record ChangeEvent(
         long changeId,
         UUID vacancyId,
@@ -31,12 +21,11 @@ public record ChangeEvent(
     private static final Pattern UUID_FORMAT =
             Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
-    /** То же изменение, но показанное как новая вакансия (для тех, кто её раньше не видел). */
     public ChangeEvent asNewVacancy() {
         return new ChangeEvent(changeId, vacancyId, ChangeType.CREATED, changedAt, Map.of());
     }
 
-    /** Разбор из Map, который получается из JSON (Jackson: числа Integer/Long/Double). */
+    
     public static ChangeEvent fromMap(Map<String, ?> data) {
         if (data == null) {
             throw new InvalidEventException("событие должно быть JSON-объектом");
@@ -74,7 +63,7 @@ public record ChangeEvent(
     }
 
     private static UUID toUuid(Object raw) {
-        // UUID.fromString принимает и «кривые» строки вроде "1-1-1-1-1", поэтому проверяем формат сами
+        
         if (raw instanceof String s && UUID_FORMAT.matcher(s).matches()) {
             return UUID.fromString(s);
         }
@@ -94,7 +83,6 @@ public record ChangeEvent(
             throw new InvalidEventException("changed_at должно быть строкой ISO-8601");
         }
         try {
-            // PostgreSQL хранит микросекунды; обрезаем сами, чтобы ключ в БД совпадал точно
             return OffsetDateTime.parse(s).truncatedTo(ChronoUnit.MICROS);
         } catch (DateTimeParseException e) {
             throw new InvalidEventException("changed_at не ISO-8601 с часовым поясом: " + s);

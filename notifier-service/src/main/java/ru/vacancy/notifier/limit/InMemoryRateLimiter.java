@@ -6,12 +6,11 @@ import java.util.function.DoubleSupplier;
 
 import ru.vacancy.notifier.util.Sleeper;
 
-/** Для тестов и локального запуска одной копии (между копиями счётчик не общий). */
 public final class InMemoryRateLimiter implements RateLimiter {
 
     private final double rate;
     private final int capacity;
-    private final DoubleSupplier clock;   // время в секундах
+    private final DoubleSupplier clock;   
     private final Sleeper sleeper;
     private final Map<String, TokenBucket> buckets = new ConcurrentHashMap<>();
 

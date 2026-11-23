@@ -1,8 +1,8 @@
 spring:
   main:
-    web-application-type: none          # веб-сервер не нужен: сервис только читает очередь
+    web-application-type: none
   datasource:
-    url: ${DB_URL}                      # jdbc:postgresql://postgres:5432/app
+    url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     hikari:
@@ -18,13 +18,14 @@ spring:
     password: ${RABBITMQ_PASSWORD}
     listener:
       simple:
-        acknowledge-mode: manual        # подтверждаем сами, после обработки
+        acknowledge-mode: manual
         prefetch: 1
-        concurrency: ${EVENT_CONCURRENCY:10}       # событий обрабатывается одновременно
+        concurrency: ${EVENT_CONCURRENCY:10}
         max-concurrency: ${EVENT_CONCURRENCY:10}
 
 notifier:
   telegram-bot-token: ${TELEGRAM_BOT_TOKEN}
+  telegram-api-base-url: ${TELEGRAM_API_BASE_URL:https://api.telegram.org}
   events-queue: ${EVENTS_QUEUE:vacancy.events}
   retry-queue: ${RETRY_QUEUE:vacancy.events.retry}
   retry-delay-ms: ${RETRY_DELAY_MS:60000}

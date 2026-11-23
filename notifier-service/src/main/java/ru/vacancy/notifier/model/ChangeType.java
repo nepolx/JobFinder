@@ -3,7 +3,7 @@ package ru.vacancy.notifier.model;
 public enum ChangeType {
     CREATED("created"),
     UPDATED("updated"),
-    CLOSED("closed");   // сейчас Poller такие события не шлёт, но обработка оставлена
+    CLOSED("closed");   
 
     private final String value;
 

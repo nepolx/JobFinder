@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import com.rabbitmq.client.Channel;
 
-/** Тонкий адаптер Spring AMQP: всё решение принимает {@link EventMessageProcessor}. */
 @Component
 public class EventListener {
 
@@ -17,8 +16,7 @@ public class EventListener {
     public EventListener(EventMessageProcessor processor) {
         this.processor = processor;
     }
-
-    // Ручное подтверждение включено в application.yml (acknowledge-mode: manual).
+    
     @RabbitListener(queues = "${notifier.events-queue:vacancy.events}")
     public void onMessage(Message message, Channel channel) throws IOException {
         long tag = message.getMessageProperties().getDeliveryTag();
@@ -27,7 +25,7 @@ public class EventListener {
         if (decision == EventMessageProcessor.Decision.ACK) {
             channel.basicAck(tag, false);
         } else {
-            channel.basicNack(tag, false, false); // requeue=false -> dead-letter -> retry-очередь
+            channel.basicNack(tag, false, false); 
         }
     }
 }

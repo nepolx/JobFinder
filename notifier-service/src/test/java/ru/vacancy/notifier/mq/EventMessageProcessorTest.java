@@ -45,7 +45,7 @@ class EventMessageProcessorTest {
         }
     }
 
-    /** Парсер, который принимает только тело "ok". */
+    
     static final EventParser PARSER = body -> {
         if (!new String(body, StandardCharsets.UTF_8).equals("ok")) {
             throw new InvalidEventException("garbage");
@@ -57,7 +57,6 @@ class EventMessageProcessorTest {
         return Map.of("x-death", List.of(Map.of("queue", "vacancy.events", "reason", "rejected", "count", (long) count)));
     }
 
-    // ---- число кругов повтора ----
 
     @Test
     void redeliveryCountReadsXDeathHeader() {
@@ -76,8 +75,7 @@ class EventMessageProcessorTest {
     void redeliveryCountIgnoresMalformedHeader() {
         assertEquals(0, EventMessageProcessor.redeliveryCount(Map.of("x-death", "garbage")));
     }
-
-    // ---- решения ----
+    
 
     @Test
     void acksWhenEverythingDelivered() {

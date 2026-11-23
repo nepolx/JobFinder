@@ -7,15 +7,6 @@ import ru.vacancy.notifier.telegram.RetryAfterException;
 import ru.vacancy.notifier.telegram.TemporaryException;
 import ru.vacancy.notifier.util.Sleeper;
 
-/**
- * Повторяет действие при TemporaryException.
- * <ul>
- *   <li>RetryAfterException: ждём ровно столько, сколько просит Telegram;</li>
- *   <li>TemporaryException: экспоненциальная задержка с jitter;</li>
- *   <li>PermanentException и любые другие исключения: сразу наружу, повторять бессмысленно.</li>
- * </ul>
- * После maxAttempts последняя ошибка пробрасывается. Объект неизменяемый и потокобезопасный.
- */
 public final class RetryExecutor {
 
     private final int maxAttempts;
@@ -37,7 +28,6 @@ public final class RetryExecutor {
                 d -> d * (0.5 + ThreadLocalRandom.current().nextDouble() * 0.5));
     }
 
-    /** Задержка после неудачной попытки №attempt (с 1): base, 2*base, 4*base ... не больше cap. */
     public static double computeBackoff(int attempt, double base, double cap) {
         return Math.min(cap, base * Math.pow(2, attempt - 1));
     }

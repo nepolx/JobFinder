@@ -1,9 +1,5 @@
 package ru.vacancy.notifier.limit;
 
-/**
- * Лимит на чат и общий лимит. Сначала чат: долгое ожидание не должно держать
- * «забронированный» глобальный токен.
- */
 public final class CompositeRateLimiter implements ChatRateLimiter {
 
     private final RateLimiter perChat;

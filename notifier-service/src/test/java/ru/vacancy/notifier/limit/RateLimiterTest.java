@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 class RateLimiterTest {
 
-    // ---- TokenBucket ----
+    
 
     @Test
     void burstUpToCapacityThenWait() {
@@ -19,7 +19,7 @@ class RateLimiterTest {
         assertEquals(0.0, b.reserve(0), 1e-9);
         assertEquals(0.0, b.reserve(0), 1e-9);
         assertEquals(0.0, b.reserve(0), 1e-9);
-        assertEquals(0.5, b.reserve(0), 1e-9);   // 4-й ждёт 1/rate
+        assertEquals(0.5, b.reserve(0), 1e-9);   
     }
 
     @Test
@@ -35,14 +35,14 @@ class RateLimiterTest {
         TokenBucket b = new TokenBucket(1, 2, 0);
         b.reserve(0);
         b.reserve(0);
-        assertEquals(0.0, b.reserve(100), 1e-9);  // накопилось, но не больше capacity
+        assertEquals(0.0, b.reserve(100), 1e-9);  
         assertEquals(0.0, b.reserve(100), 1e-9);
         assertEquals(1.0, b.reserve(100), 1e-9);
     }
 
     @Test
     void sustainedRateIsRespected() {
-        // 100 запросов подряд при rate=10/с не могут закончиться раньше чем за ~9.5 с
+        
         TokenBucket b = new TokenBucket(10, 1, 0);
         double last = 0;
         for (int i = 0; i < 100; i++) {
@@ -57,7 +57,7 @@ class RateLimiterTest {
         assertThrows(IllegalArgumentException.class, () -> new TokenBucket(1, 0, 0));
     }
 
-    // ---- InMemoryRateLimiter ----
+    
 
     static final class Fake {
         double now = 0;
@@ -98,7 +98,7 @@ class RateLimiterTest {
         assertTrue(f.sleeps.isEmpty());
     }
 
-    // ---- CompositeRateLimiter ----
+    
 
     @Test
     void chatLimitIsTakenBeforeGlobal() {

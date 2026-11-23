@@ -8,6 +8,7 @@ spring:
       host: localhost
       port: 6379
 bot:
+  api-base-url: ${BOT_API_BASE_URL:https://api.telegram.org}
   token: ${BOT_TOKEN:changeme}
   username: ${BOT_USERNAME:changeme_bot}
   webhook-url: ${BOT_WEBHOOK_URL:https://example.com/webhook}   # полный адрес, заканчивается на /webhook
