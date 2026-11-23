@@ -34,6 +34,7 @@ import ru.vacancy.notifier.model.Recipient;
 import ru.vacancy.notifier.model.Vacancy;
 import ru.vacancy.notifier.retry.RetryExecutor;
 import ru.vacancy.notifier.telegram.BotBlockedException;
+import ru.vacancy.notifier.telegram.InlineKeyboard;
 import ru.vacancy.notifier.telegram.PermanentException;
 import ru.vacancy.notifier.telegram.TelegramSender;
 import ru.vacancy.notifier.telegram.TemporaryException;
@@ -165,6 +166,15 @@ class NotificationServiceTest {
         final List<Long> calls = new ArrayList<>();
         final List<Long> sentTo = new ArrayList<>();
         final Map<Long, String> textTo = new HashMap<>();
+        final Map<Long, InlineKeyboard> keyboardTo = new HashMap<>();
+
+        @Override
+        public void sendMessage(long chatId, String text, InlineKeyboard keyboard) {
+            sendMessage(chatId, text);
+            if (sentTo.contains(chatId)) {
+                keyboardTo.put(chatId, keyboard);
+            }
+        }
 
         FakeSender failing(long chatId, RuntimeException... errors) {
             script.put(chatId, new LinkedList<>(List.of(errors)));
@@ -488,5 +498,44 @@ class NotificationServiceTest {
         assertEquals(8, delivered.get());
         assertTrue(maxRunning.get() <= 2, "одновременно отправлялось " + maxRunning.get());
         virtual.shutdown();
+    }
+
+    // ---- кнопки 👎 / 👍 ----
+
+    private static List<String> callbacks(InlineKeyboard keyboard) {
+        return keyboard.rows().stream().flatMap(List::stream).map(InlineKeyboard.Button::callbackData).toList();
+    }
+
+    @Test
+    void newVacancyCarriesDislikeAndFavoriteButtonsForTheBot() {
+        FakeRepo repo = new FakeRepo(1);
+        FakeSender sender = new FakeSender();
+
+        service(repo, sender).handle(created(1));
+
+        assertEquals(List.of("vac_skip_" + VID, "fav_add_" + VID), callbacks(sender.keyboardTo.get(1001L)));
+    }
+
+    @Test
+    void changeAndClosedNotificationsForFavoriteOwnersHaveNoButtons() {
+        FakeRepo repo = new FakeRepo();
+        repo.favorites.add(1);
+        FakeSender sender = new FakeSender();
+
+        service(repo, sender).handle(updated(2));
+        service(repo, sender).handle(closed(3));
+
+        assertTrue(sender.sentTo.contains(1001L));
+        assertEquals(null, sender.keyboardTo.get(1001L));
+    }
+
+    @Test
+    void updateSentToSubscriberAsNewVacancyHasButtons() {
+        FakeRepo repo = new FakeRepo(2);   // подписан, вакансию ещё не видел и в избранном её нет
+        FakeSender sender = new FakeSender();
+
+        service(repo, sender).handle(updated(4));
+
+        assertEquals(List.of("vac_skip_" + VID, "fav_add_" + VID), callbacks(sender.keyboardTo.get(1002L)));
     }
 }
