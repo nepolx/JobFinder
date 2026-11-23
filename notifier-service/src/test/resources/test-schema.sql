@@ -1,7 +1,3 @@
--- Схема для интеграционных тестов Notifier.
--- ЗАМЕНИТЕ на реальные миграции Flyway из db-service (скопируйте V*.sql сюда и выполняйте по порядку),
--- чтобы тесты проверяли именно ту схему, которая будет в проде.
-
 CREATE TABLE users (
   id           serial PRIMARY KEY,
   telegram_id  bigint NOT NULL UNIQUE,
@@ -57,8 +53,6 @@ CREATE TABLE user_favorites (
   PRIMARY KEY (user_id, vacancy_id)
 );
 
--- История изменений вакансий (пишет db-service). Партиции годовые 2026-2032 + запасная default.
--- Название и колонки взяты по договорённости; сверьте с реальной схемой.
 CREATE TABLE vacancy_changes (
   id          bigserial,
   vacancy_id  uuid        NOT NULL,
@@ -84,8 +78,6 @@ CREATE TABLE vacancy_changes_2032 PARTITION OF vacancy_changes
   FOR VALUES FROM ('2032-01-01 00:00:00+00') TO ('2033-01-01 00:00:00+00');
 CREATE TABLE vacancy_changes_default PARTITION OF vacancy_changes DEFAULT;
 
--- Журнал уведомлений: партиции годовые 2026-2032 + запасная default, ключ (change_id, user_id, changed_at).
--- Партиции создаёт и поддерживает db-service, Notifier их не создаёт.
 CREATE TABLE notification_log (
   change_id   bigint      NOT NULL,
   user_id     integer     NOT NULL REFERENCES users(id) ON DELETE CASCADE,

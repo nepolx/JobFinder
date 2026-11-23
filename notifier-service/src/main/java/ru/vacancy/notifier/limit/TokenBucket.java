@@ -22,7 +22,6 @@ public final class TokenBucket {
         this.updated = now;
     }
 
-    /** Списывает токен и возвращает, сколько секунд надо подождать перед отправкой. */
     public synchronized double reserve(double now) {
         double elapsed = Math.max(0.0, now - updated);
         tokens = Math.min(capacity, tokens + elapsed * rate);

@@ -34,7 +34,7 @@ class MessageFormatterTest {
         return event(type, Map.of());
     }
 
-    // ---- деньги ----
+    
 
     @Test
     void moneyHasThousandSeparators() {
@@ -52,7 +52,7 @@ class MessageFormatterTest {
         assertEquals("50" + NB + "000 – 70" + NB + "000" + NB + "₽", MessageFormatter.formatSalary(50000, 70000));
     }
 
-    // ---- сообщения ----
+    
 
     @Test
     void createdContainsKeyFactsAndLink() {
@@ -108,7 +108,7 @@ class MessageFormatterTest {
         assertFalse(text.contains("<a "));
     }
 
-    // ---- безопасность и границы ----
+    
 
     @Test
     void htmlInUserDataIsEscaped() {
@@ -134,7 +134,7 @@ class MessageFormatterTest {
 
     @Test
     void messageNeverExceedsTelegramLimit() {
-        String nasty = "&".repeat(5000); // при экранировании каждый & становится &amp;
+        String nasty = "&".repeat(5000); 
         Map<String, List<Object>> diff = new LinkedHashMap<>();
         for (String f : List.of("schedule", "employer_name", "region_name", "job_name", "experience_years")) {
             diff.put(f, List.of(nasty, nasty));
@@ -147,7 +147,7 @@ class MessageFormatterTest {
         for (ChangeType type : ChangeType.values()) {
             String text = MessageFormatter.format(event(type, diff), v);
             assertTrue(text.length() <= MessageFormatter.MAX_MESSAGE_LEN, type + ": " + text.length());
-            assertFalse(text.contains("&am…"), "сущность обрезана посередине"); // проверяем, что & не рвётся
+            assertFalse(text.contains("&am…"), "сущность обрезана посередине"); 
         }
     }
 

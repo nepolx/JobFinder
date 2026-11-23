@@ -26,12 +26,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import ru.vacancy.notifier.model.Recipient;
 
-/**
- * Проверка SQL на настоящем PostgreSQL (нужен Docker; без него тест пропускается).
- * Схема берётся из src/test/resources/test-schema.sql (годовые партиции 2026-2032 и default, как у db-service):
- * замените её на миграции Flyway из db-service.
- * Запуск: mvn verify.
- */
 @Testcontainers(disabledWithoutDocker = true)
 class JdbcNotificationRepositoryIT {
 
@@ -62,8 +56,6 @@ class JdbcNotificationRepositoryIT {
         repo = new JdbcNotificationRepository(jdbc, new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
         insertVacancy(VID, "Python разработчик");
     }
-
-    // ---- помощники ----
 
     void insertVacancy(UUID id, String jobName) {
         jdbc.update("""
@@ -96,7 +88,7 @@ class JdbcNotificationRepositoryIT {
         jdbc.update("INSERT INTO user_favorites (user_id, vacancy_id) VALUES (?, ?)", userId, vacancyId);
     }
 
-    /** Запись в истории изменений вакансии; возвращает change_id. */
+    
     long change(UUID vacancyId, OffsetDateTime at) {
         return jdbc.queryForObject(
                 "INSERT INTO vacancy_changes (vacancy_id, changed_at, change_type) VALUES (?, ?, 'created') RETURNING id",
@@ -118,7 +110,7 @@ class JdbcNotificationRepositoryIT {
                 String.class, r.changeId(), r.changedAt(), r.userId());
     }
 
-    // ---- подбор получателей ----
+    
 
     @Test
     void subscribersAreOnlyThoseWhoseCriteriaMatch() {
@@ -133,7 +125,7 @@ class JdbcNotificationRepositoryIT {
         subscribe(okRegionKeyword, true, "77", 90000, "python");
         subscribe(wrongRegion, true, "78", null, null);
         subscribe(tooHighSalary, true, null, 200000, null);
-        subscribeToEverything(noCriteria);                     // «всё подряд»
+        subscribeToEverything(noCriteria);                     
         subscribe(inactive, false, "77", null, null);
         subscribe(blocked, true, "77", null, null);
         subscribe(wrongKeyword, true, null, null, "бухгалтер");
@@ -154,14 +146,14 @@ class JdbcNotificationRepositoryIT {
         int fan = user(1);
         int stranger = user(2);
         int blockedFan = user(3, true);
-        subscribeToEverything(stranger);                        // подписан, но вакансии в избранном нет
+        subscribeToEverything(stranger);                        
         favorite(fan, VID);
         favorite(blockedFan, VID);
 
         assertEquals(List.of(fan), repo.findFavoriteOwnerUserIds(VID));
     }
 
-    // ---- «новая» против «изменилась» ----
+    
 
     @Test
     void notYetNotifiedSkipsThoseWhoAlreadyGotTheVacancy() {
@@ -176,8 +168,8 @@ class JdbcNotificationRepositoryIT {
         long changeOfThisVacancy = change(VID, T0.minusDays(3));
         long changeOfOtherVacancy = change(OTHER_VID, T0.minusDays(3));
         logRow(changeOfThisVacancy, T0.minusDays(3), gotItBefore, "sent");
-        logRow(changeOfThisVacancy, T0.minusDays(3), failedBefore, "failed");   // не доставлено: «новая» ещё актуальна
-        logRow(changeOfOtherVacancy, T0.minusDays(3), gotOtherVacancy, "sent"); // другая вакансия не в счёт
+        logRow(changeOfThisVacancy, T0.minusDays(3), failedBefore, "failed");   
+        logRow(changeOfOtherVacancy, T0.minusDays(3), gotOtherVacancy, "sent"); 
 
         assertEquals(Set.of(gotItBefore, never, failedBefore, gotOtherVacancy), subscribers(false));
         assertEquals(Set.of(never, failedBefore, gotOtherVacancy), subscribers(true));
@@ -185,7 +177,7 @@ class JdbcNotificationRepositoryIT {
 
     @Test
     void notifiedInPreviousYearPartitionStillCounts() {
-        // уведомление ушло в 2026 году (партиция 2026), вакансия обновляется в 2027 (партиция 2027)
+        
         int u = user(1);
         subscribeToEverything(u);
         OffsetDateTime lastYear = OffsetDateTime.parse("2026-03-01T10:00:00Z");
@@ -207,20 +199,20 @@ class JdbcNotificationRepositoryIT {
         assertFalse(pending.stream().filter(r -> r.userId() == newcomer).findFirst().orElseThrow().inFavorites());
     }
 
-    // ---- журнал и годовые партиции ----
+    
 
     @Test
     void pendingLifecycleIsIdempotent() {
         int u1 = user(11);
         int u2 = user(22);
         repo.createPending(5, T0, List.of(u1, u2));
-        repo.createPending(5, T0, List.of(u1, u2));              // повтор события
+        repo.createPending(5, T0, List.of(u1, u2));              
 
         List<Recipient> pending = repo.fetchPending(5, T0, VID);
         assertEquals(Set.of(11L, 22L), pending.stream().map(Recipient::telegramId).collect(Collectors.toSet()));
 
         repo.markSent(pending.get(0));
-        repo.createPending(5, T0, List.of(u1, u2));              // отправленное не воскресает
+        repo.createPending(5, T0, List.of(u1, u2));              
         assertEquals(1, repo.fetchPending(5, T0, VID).size());
         assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM notification_log", Integer.class));
         assertEquals("sent", status(pending.get(0)));
@@ -231,7 +223,7 @@ class JdbcNotificationRepositoryIT {
         int u = user(1);
         OffsetDateTime nextYear = OffsetDateTime.parse("2027-01-08T12:00:00Z");
         repo.createPending(5, T0, List.of(u));
-        repo.createPending(5, nextYear, List.of(u));             // тот же change_id, другая партиция
+        repo.createPending(5, nextYear, List.of(u));             
 
         assertEquals(1, repo.fetchPending(5, T0, VID).size());
         assertEquals(1, repo.fetchPending(5, nextYear, VID).size());
@@ -242,7 +234,7 @@ class JdbcNotificationRepositoryIT {
     @Test
     void eventBeyondYearlyPartitionsLandsInDefaultPartitionAndIsStillFound() {
         int u = user(1);
-        OffsetDateTime farFuture = OffsetDateTime.parse("2040-01-01T00:00:00Z");   // вне 2026-2032
+        OffsetDateTime farFuture = OffsetDateTime.parse("2040-01-01T00:00:00Z");   
         repo.createPending(5, farFuture, List.of(u));
 
         assertEquals(1, repo.fetchPending(5, farFuture, VID).size());

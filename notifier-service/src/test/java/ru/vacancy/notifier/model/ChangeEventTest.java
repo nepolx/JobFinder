@@ -17,7 +17,7 @@ class ChangeEventTest {
 
     static final String VID = "3f2b8c1e-6a4d-4e0a-9c55-0d1f2a3b4c5d";
 
-    /** Корректное событие; overrides заменяют поля, null в значении удаляет поле. */
+    
     static Map<String, Object> raw(Object... overrides) {
         Map<String, Object> m = new HashMap<>();
         m.put("change_id", 7);
@@ -72,14 +72,14 @@ class ChangeEventTest {
         List<Map<String, Object>> bad = List.of(
                 raw("type", "deleted"),
                 raw("vacancy_id", "123"),
-                raw("vacancy_id", "1-1-1-1-1"),               // UUID.fromString такое бы принял
+                raw("vacancy_id", "1-1-1-1-1"),               
                 raw("change_id", "abc"),
                 raw("change_id", 1.5),
-                raw("changed_at", "2026-11-08T12:00:00"),      // без часового пояса
+                raw("changed_at", "2026-11-08T12:00:00"),      
                 raw("changed_at", "вчера"),
                 raw("changed_at", 1731067200),
                 raw("diff", List.of(1, 2)),
-                raw("diff", Map.of("salary_min", 50000)),      // не пара [было, стало]
+                raw("diff", Map.of("salary_min", 50000)),      
                 raw("diff", Map.of("salary_min", List.of(1, 2, 3))));
         for (Map<String, Object> body : bad) {
             assertThrows(InvalidEventException.class, () -> ChangeEvent.fromMap(body), body.toString());

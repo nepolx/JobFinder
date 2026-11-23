@@ -12,13 +12,6 @@ import ru.vacancy.notifier.model.InvalidEventException;
 import ru.vacancy.notifier.service.EventHandler;
 import ru.vacancy.notifier.service.HandleResult;
 
-/**
- * Решает, что сделать с сообщением из RabbitMQ. Не зависит от Spring AMQP, поэтому
- * тестируется обычными unit-тестами.
- *
- * Схема повторов: nack без requeue -> dead-letter в vacancy.events.retry -> через TTL
- * сообщение возвращается в vacancy.events. Число кругов считаем по заголовку x-death.
- */
 public final class EventMessageProcessor {
 
     public enum Decision { ACK, NACK_NO_REQUEUE }
@@ -40,7 +33,6 @@ public final class EventMessageProcessor {
         try {
             event = parser.parse(body);
         } catch (InvalidEventException e) {
-            // Повторять бессмысленно, а в очереди оставлять нельзя.
             log.error("отбрасываем некорректное событие: {}; body={}", e.getMessage(), preview(body));
             return Decision.ACK;
         }
@@ -65,10 +57,9 @@ public final class EventMessageProcessor {
             }
             return Decision.ACK;
         }
-        return Decision.NACK_NO_REQUEUE; // уйдёт в retry-очередь и вернётся через TTL
+        return Decision.NACK_NO_REQUEUE;
     }
 
-    /** Сколько раз сообщение уже прошло круг через retry-очередь (максимум по записям x-death). */
     public static int redeliveryCount(Map<String, Object> headers) {
         if (headers == null || !(headers.get("x-death") instanceof List<?> deaths)) {
             return 0;

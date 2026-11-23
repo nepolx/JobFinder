@@ -7,12 +7,6 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 import ru.vacancy.notifier.util.Sleeper;
 
-/**
- * Общий для всех копий Notifier лимитер: та же математика, что в {@link TokenBucket},
- * но выполняется атомарно внутри Redis (Lua), время берётся с часов Redis.
- * Ключи: {prefix}:global и {prefix}:chat:{id}. Bot API может брать токены из того же
- * {prefix}:global, чтобы его ответы учитывались в общем лимите Telegram.
- */
 public final class RedisRateLimiter implements RateLimiter {
 
     private static final String LUA = """

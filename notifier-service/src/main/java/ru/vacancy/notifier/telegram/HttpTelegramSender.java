@@ -13,7 +13,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-/** HTTP-слой поверх java.net.http. Разбор ответов вынесен в {@link TelegramResponses}. */
 public final class HttpTelegramSender implements TelegramSender {
 
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() { };
@@ -57,7 +56,7 @@ public final class HttpTelegramSender implements TelegramSender {
         try {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException e) {
-            // только имя класса: в тексте ошибки может оказаться URL с токеном
+            
             throw new TemporaryException("network error: " + e.getClass().getSimpleName());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

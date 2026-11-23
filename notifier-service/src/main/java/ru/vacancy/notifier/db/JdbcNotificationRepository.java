@@ -13,17 +13,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import ru.vacancy.notifier.model.Recipient;
 import ru.vacancy.notifier.model.Vacancy;
 
-/**
- * Схему ведёт db-service (Flyway), Notifier её не создаёт и не меняет.
- * Ожидаемые колонки notification_log: change_id, changed_at, user_id (ключ) и
- * status ('pending'|'sent'|'failed'|'blocked'), attempts, last_error, sent_at.
- * Ожидаемая история изменений: vacancy_changes (id, vacancy_id, changed_at); change_id журнала = vacancy_changes.id.
- * Журнал и история партиционированы по годам (changed_at). Если названия отличаются, правится только SQL в этом файле.
- */
 @Repository
 public class JdbcNotificationRepository implements NotificationRepository {
-
-    // Подписки, под которые подходит вакансия. NULL в подписке означает «без ограничения по критерию».
     private static final String SQL_SUBSCRIBERS = """
             SELECT DISTINCT s.user_id
             FROM subscriptions s
@@ -40,11 +31,6 @@ public class JdbcNotificationRepository implements NotificationRepository {
               AND (s.query_tsq IS NULL OR numnode(s.query_tsq) = 0 OR s.query_tsq @@ v.search_vector)
             """;
 
-    // То же, но только для тех, кому о вакансии ещё ничего не отправляли.
-    // «Отправляли» = в журнале есть запись sent по любому изменению этой вакансии (история в vacancy_changes).
-    // Журнал и история партиционированы по годам: связка идёт по полному (id, changed_at), поэтому
-    // PostgreSQL заглядывает только в нужные партиции; сами партиции за все годы хранения учитываются.
-    // Нужен индекс vacancy_changes (vacancy_id, changed_at).
     private static final String SQL_SUBSCRIBERS_NOT_YET_NOTIFIED = SQL_SUBSCRIBERS + """
               AND NOT EXISTS (
                     SELECT 1
