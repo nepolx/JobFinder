@@ -64,14 +64,12 @@ public class VacancyWindowLoader {
     private void loadWindow(Instant start, Instant end, WindowHandler handler) {
         for (int attempt = 0; ; attempt++) {
             VacancyPage first = fetch(0, start, end);
-            // окно делим, если записей больше max-window-records (по умолчанию: если оно не читается за один запрос)
             if (isSplittable(start, end)
                     && (first.exceedsReadableRange() || first.total() > properties.maxWindowRecords())) {
                 split(start, end, first.total(), handler);
                 return;
             }
             if (first.exceedsReadableRange()) {
-                // окно в одну секунду не делится: split сообщит об этом исключением
                 split(start, end, first.total(), handler);
                 return;
             }
@@ -83,25 +81,25 @@ public class VacancyWindowLoader {
                 raw.addAll(page.vacancies());
             }
 
-            // пока шли по страницам, окно могло вырасти
             if (last.exceedsReadableRange()) {
                 split(start, end, last.total(), handler);
                 return;
             }
 
-            // меньше записей, чем сообщает total: страницы сдвинулись из-за обновления данных
-            if (raw.size() < last.total()) {
+            List<TrudvsemVacancyDto> vacancies = deduplicate(raw);
+            long withoutId = raw.stream().filter(vacancy -> vacancy.id() == null).count();
+            long received = vacancies.size() + withoutId;
+            if (received < last.total()) {
                 if (attempt >= properties.maxReloadAttempts()) {
                     throw new IllegalStateException(
                             "Window [" + start + ", " + end + "] is incomplete: received "
-                                    + raw.size() + " of " + last.total());
+                                    + received + " of " + last.total());
                 }
                 log.warn("Window [{}, {}] changed while loading: received {} of {}. Reloading (attempt {})",
-                        start, end, raw.size(), last.total(), attempt + 1);
+                        start, end, received, last.total(), attempt + 1);
                 continue;
             }
 
-            List<TrudvsemVacancyDto> vacancies = deduplicate(raw);
             log.info("Window [{}, {}]: {} vacancies ({} after deduplication)",
                     start, end, raw.size(), vacancies.size());
             handler.handle(start, end, vacancies);
@@ -122,7 +120,6 @@ public class VacancyWindowLoader {
             return pages;
         }
 
-        // читаемый диапазон гарантирован: окно, которое не помещается в 100 страниц, уже разделено
         int lastPage = Math.min(first.totalPages() - 1, TrudvsemApiClient.MAX_PAGE);
         List<CompletableFuture<VacancyPage>> futures = new ArrayList<>();
         for (int page = 1; page <= lastPage; page++) {
@@ -134,7 +131,6 @@ public class VacancyWindowLoader {
                 pages.add(future.join());
             }
         } catch (CompletionException e) {
-            // оставшиеся ещё не начатые запросы отменяем; уже идущие завершатся сами
             futures.forEach(future -> future.cancel(true));
             if (e.getCause() instanceof RuntimeException cause) {
                 throw cause;

@@ -64,42 +64,36 @@ public class SyncOrchestrator {
         this.clock = clock;
     }
 
-    public void run() {
+    public RunSummary run() {
         if (!running.compareAndSet(false, true)) {
             log.warn("Previous sync run is still in progress, skipping");
-            new RunSummary(Status.ALREADY_RUNNING, 0, 0, 0, 0, 0, false, null);
-            return;
+            return new RunSummary(Status.ALREADY_RUNNING, 0, 0, 0, 0, 0, false, null);
         }
         try {
-            doRun();
+            return doRun();
         } finally {
             running.set(false);
         }
     }
 
-    private void doRun() {
+    private RunSummary doRun() {
         Instant now = clock.instant();
         RunState state = new RunState();
 
-        // 1. события, оставшиеся с прошлых запусков (в том числе при недоступном брокере)
         DrainResult pending = outbox.drain();
         state.published += pending.published();
         state.brokerFailed = pending.brokerFailed();
 
-        // 2. курсор
         state.cursor = readCursor(now);
         Instant from = state.cursor.minus(properties.overlap());
 
-        // 3. верхняя граница: самая новая запись в API, но не из будущего
         Optional<Instant> latest = loader.findLatestModified(from);
         Instant to = latest.map(value -> value.isAfter(now) ? now : value).orElse(null);
         if (to == null || !to.isAfter(state.cursor)) {
             log.info("No new data in API (cursor {}, latest {})", state.cursor, latest.orElse(null));
-            summary(Status.IDLE, state);
-            return;
+            return summary(Status.IDLE, state);
         }
 
-        // 4. загрузка окнами
         log.info("Sync started: from {} to {} (cursor {})", from, to, state.cursor);
         loader.load(from, to, (windowFrom, windowTo, vacancies) -> handleWindow(state, windowTo, vacancies));
 
@@ -107,6 +101,7 @@ public class SyncOrchestrator {
         log.info("Sync completed: windows={}, fetched={}, skipped={}, changes={}, published={}, brokerFailed={}, cursor={}",
                 result.windows(), result.fetched(), result.skipped(), result.changes(),
                 result.published(), result.brokerFailed(), result.cursor());
+        return result;
     }
 
     private void handleWindow(RunState state, Instant windowTo, List<TrudvsemVacancyDto> vacancies) {
@@ -120,8 +115,6 @@ public class SyncOrchestrator {
             List<VacancyChangeDto> changes = dbClient.syncAll(mapped.vacancies());
             state.changes += changes.size();
 
-            // если брокер уже не отвечал в этом запуске, повторно ждать таймаут на каждом окне не нужно:
-            // события лежат в outbox и уйдут в начале следующего запуска
             if (!changes.isEmpty() && !state.brokerFailed) {
                 DrainResult drained = outbox.drain();
                 state.published += drained.published();
@@ -129,7 +122,6 @@ public class SyncOrchestrator {
             }
         }
 
-        // окна идут вперёд, но первое окно начинается раньше курсора (overlap): назад курсор не двигаем
         if (windowTo.isAfter(state.cursor)) {
             dbClient.saveCursor(windowTo);
             state.cursor = windowTo;
