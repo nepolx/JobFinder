@@ -3,7 +3,7 @@ package ru.vacancybot.worker.mapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import ru.vacancybot.worker.dto.dbservice.VacancyUpsertDto;
+import ru.vacancybot.common.dto.VacancyUpsertDto;
 import ru.vacancybot.worker.dto.external.TrudvsemVacancyDto;
 import ru.vacancybot.worker.dto.external.TrudvsemVacancyDto.TrudvsemCompanyDto;
 import ru.vacancybot.worker.dto.external.TrudvsemVacancyDto.TrudvsemRegionDto;

@@ -3,7 +3,7 @@ package ru.vacancybot.worker.dto.event;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import ru.vacancybot.worker.dto.dbservice.VacancyChangeDto;
+import ru.vacancybot.common.dto.VacancyChangeDto;
 
 import java.time.Instant;
 import java.util.List;

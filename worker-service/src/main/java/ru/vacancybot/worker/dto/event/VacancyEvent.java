@@ -2,7 +2,7 @@ package ru.vacancybot.worker.dto.event;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import ru.vacancybot.worker.dto.dbservice.VacancyChangeDto;
+import ru.vacancybot.common.dto.VacancyChangeDto;
 
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
