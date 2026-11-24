@@ -12,8 +12,8 @@ import org.springframework.amqp.core.ReturnedMessage;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import ru.vacancybot.worker.config.EventsProperties;
-import ru.vacancybot.worker.dto.dbservice.ChangeKeyDto;
-import ru.vacancybot.worker.dto.dbservice.VacancyChangeDto;
+import ru.vacancybot.common.dto.ChangeKeyDto;
+import ru.vacancybot.common.dto.VacancyChangeDto;
 import ru.vacancybot.worker.publisher.VacancyEventPublisher.PublishOutcome;
 
 import java.io.IOException;

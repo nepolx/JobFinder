@@ -5,8 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.vacancybot.worker.client.dbservice.DbServiceClient;
 import ru.vacancybot.worker.config.EventsProperties;
-import ru.vacancybot.worker.dto.dbservice.ChangeKeyDto;
-import ru.vacancybot.worker.dto.dbservice.VacancyChangeDto;
+import ru.vacancybot.common.dto.ChangeKeyDto;
+import ru.vacancybot.common.dto.VacancyChangeDto;
 import ru.vacancybot.worker.publisher.VacancyEventPublisher.PublishOutcome;
 
 import java.util.List;

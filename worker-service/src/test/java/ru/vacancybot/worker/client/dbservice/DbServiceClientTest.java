@@ -16,10 +16,10 @@ import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import ru.vacancybot.worker.config.SyncProperties;
-import ru.vacancybot.worker.dto.dbservice.ChangeKeyDto;
-import ru.vacancybot.worker.dto.dbservice.RegionDto;
-import ru.vacancybot.worker.dto.dbservice.VacancyChangeDto;
-import ru.vacancybot.worker.dto.dbservice.VacancyUpsertDto;
+import ru.vacancybot.common.dto.ChangeKeyDto;
+import ru.vacancybot.common.dto.RegionDto;
+import ru.vacancybot.common.dto.VacancyChangeDto;
+import ru.vacancybot.common.dto.VacancyUpsertDto;
 import ru.vacancybot.worker.exception.DbServiceException;
 
 import java.time.Duration;
@@ -248,7 +248,7 @@ class DbServiceClientTest {
                           "changes":{"schedule_code":["part","full"]}}]
                         """, MediaType.APPLICATION_JSON));
 
-        List<VacancyChangeDto> changes = client.fetchUnpublished(200);
+        List<ru.vacancybot.common.dto.VacancyChangeDto> changes = client.fetchUnpublished(200);
 
         assertThat(changes).extracting(VacancyChangeDto::changeId).containsExactly(5L, 6L);
         assertThat(changes.get(1).changes().get("schedule_code")).containsExactly("part", "full");
