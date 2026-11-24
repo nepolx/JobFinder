@@ -12,11 +12,11 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import ru.vacancybot.worker.config.SyncProperties;
-import ru.vacancybot.worker.dto.dbservice.ChangeKeyDto;
-import ru.vacancybot.worker.dto.dbservice.RegionDto;
-import ru.vacancybot.worker.dto.dbservice.SyncStateDto;
-import ru.vacancybot.worker.dto.dbservice.VacancyChangeDto;
-import ru.vacancybot.worker.dto.dbservice.VacancyUpsertDto;
+import ru.vacancybot.common.dto.ChangeKeyDto;
+import ru.vacancybot.common.dto.RegionDto;
+import ru.vacancybot.common.dto.SyncStateDto;
+import ru.vacancybot.common.dto.VacancyChangeDto;
+import ru.vacancybot.common.dto.VacancyUpsertDto;
 import ru.vacancybot.worker.exception.DbServiceException;
 
 import java.io.IOException;

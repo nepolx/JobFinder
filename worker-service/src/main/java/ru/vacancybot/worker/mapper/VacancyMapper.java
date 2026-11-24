@@ -3,7 +3,7 @@ package ru.vacancybot.worker.mapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.vacancybot.worker.client.trudvsem.TrudvsemDateParser;
-import ru.vacancybot.worker.dto.dbservice.VacancyUpsertDto;
+import ru.vacancybot.common.dto.VacancyUpsertDto;
 import ru.vacancybot.worker.dto.external.TrudvsemVacancyDto;
 
 import java.time.Instant;
